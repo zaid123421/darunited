@@ -1,6 +1,6 @@
 /**
- * Unsigned JWT-shaped token for local dashboard access until a real API exists.
- * Only used when DEV_AUTH_BYPASS is enabled — not for production auth.
+ * Unsigned JWT-shaped token for dashboard access until a real API exists.
+ * Only used when DEV_AUTH_BYPASS is enabled.
  */
 export function createDevJwt(
   claims: Record<string, unknown> = {},

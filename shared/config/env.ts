@@ -22,7 +22,7 @@ export const env = {
   EXPOSE_OTP_DEBUG:
     process.env.EXPOSE_OTP_DEBUG === "true" ||
     process.env.NEXT_PUBLIC_EXPOSE_OTP_DEBUG === "true",
-  /** Local-only: skip OTP and enter dashboard as super_admin until backend exists. */
+  /** Skip OTP and enter dashboard as super_admin until backend exists. Disable when API is ready. */
   DEV_AUTH_BYPASS:
     process.env.DEV_AUTH_BYPASS === "true" ||
     process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true",

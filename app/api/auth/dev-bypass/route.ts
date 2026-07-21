@@ -6,7 +6,8 @@ import type { AuthUser, AuthTokens } from "@/modules/auth/types";
 
 export async function POST(request: Request) {
   try {
-    if (env.IS_PRODUCTION || !env.DEV_AUTH_BYPASS) {
+    // Allowed in production while no backend exists — disable DEV_AUTH_BYPASS when API is ready.
+    if (!env.DEV_AUTH_BYPASS) {
       return jsonResponse(
         {
           status_code: 403,
