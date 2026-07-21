@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+
+[build.environment]
+  BACKEND_API_URL = "http://127.0.0.1:8000/api"
+  NEXT_PUBLIC_BACKEND_API_URL = "http://127.0.0.1:8000/api"
+  NEXT_PUBLIC_USE_DIRECT_BACKEND_API = "true"
+  EXPOSE_OTP_DEBUG = "true"
+  NEXT_PUBLIC_EXPOSE_OTP_DEBUG = "true"

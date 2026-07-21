@@ -1,0 +1,388 @@
+@import "tailwindcss";
+
+/* ── DARUNITED brand palette (mini-guide) ── */
+:root {
+  --du-black: #0e1010;
+  --du-red: #e91c24;
+  --du-grey: #b7b7b7;
+  --du-white: #faf9f8;
+
+  --background: var(--du-black);
+  --foreground: var(--du-white);
+  --card: #1a1c1c;
+  --card-foreground: var(--du-white);
+  --muted: #242626;
+  --muted-foreground: color-mix(in srgb, var(--du-white) 62%, transparent);
+  --primary: var(--du-red);
+  --primary-foreground: var(--du-white);
+  --accent: var(--du-grey);
+  --accent-foreground: var(--du-black);
+  --border: color-mix(in srgb, var(--du-white) 12%, transparent);
+  --input: #242626;
+  --ring: var(--du-red);
+  /* Destructive: outline treatment preferred; keep token for borders/text */
+  --destructive: var(--du-red);
+  --destructive-foreground: var(--du-white);
+  --radius: 0.5rem;
+
+  /*
+   * Type scale — golden ratio 1.618
+   * body (Regular) → subtitle (Medium) → title (Bold)
+   */
+  --text-body: 1rem;
+  --text-subtitle: 1.618rem;
+  --text-title: 2.618rem;
+  /* Compact UI tier (same ratio, one step down) */
+  --text-ui-body: 0.875rem;
+  --text-ui-subtitle: 1rem;
+  --text-ui-title: 1.618rem;
+
+  --font-heading: var(--font-aktiv), system-ui, Arial, sans-serif;
+  --font-body: var(--font-aktiv), system-ui, Arial, sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-du-black: var(--du-black);
+  --color-du-red: var(--du-red);
+  --color-du-grey: var(--du-grey);
+  --color-du-white: var(--du-white);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-aktiv), system-ui, Arial, sans-serif;
+  --font-mono: var(--font-body);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 8px);
+}
+
+* {
+  border-color: var(--border);
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--du-red) var(--background);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--du-red);
+  border: 2px solid var(--background);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--du-red) 80%, white);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--background);
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Default heading rules = black surface (red titles) */
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  color: var(--du-red);
+  letter-spacing: 0.01em;
+}
+
+h1 {
+  font-size: var(--text-ui-title);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: var(--text-ui-subtitle);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--du-grey);
+}
+
+h3 {
+  font-size: var(--text-ui-body);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--du-grey);
+}
+
+/* ── Page title / subtitle helpers (UI) ── */
+.page-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-ui-title);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--du-red);
+}
+
+.page-subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-ui-subtitle);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--du-grey);
+}
+
+.display-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.618rem, 4vw, var(--text-title));
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--du-red);
+}
+
+.display-subtitle {
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 2.5vw, var(--text-subtitle));
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--du-grey);
+}
+
+/* Surface helpers from brand guide */
+.surface-black {
+  background: var(--du-black);
+  color: var(--du-white);
+}
+.surface-black .title,
+.surface-black .page-title,
+.surface-black h1 {
+  color: var(--du-red);
+}
+.surface-black .subtitle,
+.surface-black .page-subtitle,
+.surface-black h2 {
+  color: var(--du-grey);
+}
+
+.surface-white {
+  background: var(--du-white);
+  color: var(--du-black);
+}
+.surface-white .title,
+.surface-white .subtitle,
+.surface-white .page-title,
+.surface-white .page-subtitle,
+.surface-white h1,
+.surface-white h2,
+.surface-white h3 {
+  color: var(--du-red);
+}
+
+.surface-grey {
+  background: var(--du-grey);
+  color: #ffffff;
+}
+.surface-grey .title,
+.surface-grey h1,
+.surface-grey h2,
+.surface-grey h3 {
+  color: var(--du-black);
+  font-weight: 700;
+}
+
+/* Red background = footer only; medium/bold text for visibility */
+.surface-footer {
+  background: var(--du-red);
+  color: #ffffff;
+  font-weight: 500;
+}
+.surface-footer a,
+.surface-footer p,
+.surface-footer h3,
+.surface-footer span {
+  color: #ffffff;
+  font-weight: 500;
+}
+.surface-footer .footer-title {
+  font-weight: 700;
+}
+
+/* Accent text (titles) */
+.gradient-text {
+  color: var(--du-red);
+  -webkit-text-fill-color: var(--du-red);
+}
+
+/*
+ * Primary CTA — red is NOT used as fill outside the footer.
+ * Filled: off-white + red text (Medium). Outline: red border + red text.
+ */
+.btn-brand,
+.gradient-btn {
+  background: var(--du-white);
+  color: var(--du-red);
+  font-weight: 500;
+  box-shadow: none;
+  transition: background 0.15s, transform 0.15s, opacity 0.15s;
+}
+.btn-brand:hover,
+.gradient-btn:hover {
+  background: color-mix(in srgb, var(--du-white) 88%, var(--du-red));
+  transform: translateY(-1px);
+}
+.btn-brand:active,
+.gradient-btn:active {
+  transform: translateY(0);
+}
+
+.btn-brand-outline {
+  background: transparent;
+  border: 1px solid var(--du-red);
+  color: var(--du-red);
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-brand-outline:hover {
+  background: color-mix(in srgb, var(--du-red) 12%, transparent);
+}
+
+.btn-destructive-outline {
+  background: transparent;
+  border: 1px solid var(--du-red);
+  color: var(--du-red);
+  font-weight: 500;
+}
+.btn-destructive-outline:hover {
+  background: color-mix(in srgb, var(--du-red) 12%, transparent);
+}
+
+/* Card lift — grey shadow, not red glow */
+.card-lift {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-lift:hover {
+  box-shadow: 0 8px 30px rgba(14, 16, 16, 0.45);
+  transform: translateY(-3px);
+}
+
+.hero-bg {
+  background:
+    radial-gradient(
+      ellipse 70% 50% at 60% -10%,
+      rgba(183, 183, 183, 0.12) 0%,
+      transparent 65%
+    ),
+    var(--du-black);
+}
+
+/* Auth ambient — grey, not red panel */
+.brand-panel {
+  background: linear-gradient(
+    145deg,
+    #141616 0%,
+    var(--du-black) 45%,
+    #1c1e1e 100%
+  );
+}
+
+.dot-pattern::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(250, 249, 248, 0.1) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.app-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--du-red);
+  transition: width 0.25s ease;
+}
+.nav-link:hover::after {
+  width: 100%;
+}
+
+@keyframes auth-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-auth-enter {
+  animation: auth-enter 0.55s ease-out both;
+}
+
+.animate-auth-enter-delayed {
+  animation: auth-enter 0.55s ease-out 0.12s both;
+}
+
+.animate-auth-line {
+  animation: auth-line 0.7s ease-out 0.35s both;
+}
