@@ -2,6 +2,7 @@ import { setOtpAccessCookie } from "@/shared/lib/cookies";
 import {
   buildRequestCodeBody,
   getOtpDebugRequestHeaders,
+  resolveTurnstileToken,
 } from "@/shared/lib/auth/otp-debug";
 import { performDevBypassLogin } from "@/shared/lib/auth/dev-bypass-login";
 import { sanitizeRequestCodeResponse } from "@/shared/lib/auth/otp-session";
@@ -15,8 +16,13 @@ import type { RequestCodeData } from "@/modules/auth/types";
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { email?: string };
+    const body = (await request.json()) as {
+      email?: string;
+      turnstileToken?: string;
+      companyWebsite?: string | null;
+    };
     const email = body.email?.trim().toLowerCase();
+    const turnstileToken = resolveTurnstileToken(body.turnstileToken);
 
     if (!email) {
       return jsonResponse(
@@ -29,7 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // No Laravel yet — same path as /api/auth/dev-bypass so Netlify never hits 127.0.0.1.
+    // No Laravel yet — same path as /auth/dev-bypass so Netlify never hits 127.0.0.1.
     if (env.DEV_AUTH_BYPASS) {
       const data = await performDevBypassLogin(email);
 
@@ -41,11 +47,26 @@ export async function POST(request: Request) {
       });
     }
 
+    if (!turnstileToken) {
+      return jsonResponse(
+        {
+          status_code: 422,
+          message: "Human verification is required.",
+          data: null,
+        },
+        422,
+      );
+    }
+
     const { data } = await proxyToBackend<RequestCodeData>(
       "/auth/request-code",
       {
         method: "POST",
-        body: buildRequestCodeBody(email),
+        body: buildRequestCodeBody({
+          email,
+          turnstileToken,
+          companyWebsite: body.companyWebsite ?? null,
+        }),
         headers: getOtpDebugRequestHeaders(),
       },
     );

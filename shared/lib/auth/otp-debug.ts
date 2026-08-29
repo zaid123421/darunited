@@ -1,5 +1,11 @@
 import { env } from "@/shared/config/env";
 
+export type RequestCodePayload = {
+  email: string;
+  turnstileToken: string;
+  companyWebsite?: string | null;
+};
+
 export function getOtpDebugRequestHeaders(): Record<string, string> {
   if (!env.EXPOSE_OTP_DEBUG) {
     return {};
@@ -11,21 +17,23 @@ export function getOtpDebugRequestHeaders(): Record<string, string> {
   };
 }
 
-export function withOtpDebugBody<T extends Record<string, unknown>>(body: T): T {
-  if (!env.EXPOSE_OTP_DEBUG) {
-    return body;
+export function resolveTurnstileToken(token?: string | null) {
+  const trimmed = token?.trim();
+  if (trimmed) {
+    return trimmed;
   }
 
+  return env.TURNSTILE_TEST_TOKEN.trim();
+}
+
+export function buildRequestCodeBody(payload: RequestCodePayload) {
   return {
-    ...body,
-    debug: true,
+    email: payload.email.trim().toLowerCase(),
+    turnstileToken: resolveTurnstileToken(payload.turnstileToken),
+    companyWebsite: payload.companyWebsite ?? null,
   };
 }
 
-export function buildRequestCodeBody(email: string) {
-  return withOtpDebugBody({ email });
-}
-
 export function buildResendCodeBody() {
-  return withOtpDebugBody({});
+  return {};
 }

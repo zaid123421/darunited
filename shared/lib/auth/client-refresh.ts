@@ -5,17 +5,18 @@ import type { RefreshTokenData } from "@/modules/auth/types";
 import type { GlobalResponse } from "@/shared/types/global-response";
 
 const AUTH_PATHS_WITHOUT_REFRESH = [
+  "/auth/refresh",
+  "/auth/request-code",
+  "/auth/verify-code",
+  "/auth/resend-code",
+  "/auth/logout",
+  "/auth/session/",
   "/api/auth/refresh",
   "/api/auth/request-code",
   "/api/auth/verify-code",
   "/api/auth/resend-code",
   "/api/auth/logout",
   "/api/auth/session/",
-  "/auth/refresh",
-  "/auth/request-code",
-  "/auth/verify-code",
-  "/auth/resend-code",
-  "/auth/logout",
 ];
 
 let refreshPromise: Promise<boolean> | null = null;
@@ -27,7 +28,7 @@ export function shouldAttemptSessionRefresh(path: string): boolean {
 }
 
 async function refreshViaBff(): Promise<boolean> {
-  const response = await fetch("/api/auth/refresh", {
+  const response = await fetch("/auth/refresh", {
     method: "POST",
     credentials: "include",
     headers: {
@@ -64,7 +65,7 @@ async function refreshViaDirectBackend(): Promise<boolean> {
   clientSession.setTokens(payload.data);
 
   try {
-    await fetch("/api/auth/session/tokens", {
+    await fetch("/auth/session/tokens", {
       method: "POST",
       credentials: "include",
       headers: {

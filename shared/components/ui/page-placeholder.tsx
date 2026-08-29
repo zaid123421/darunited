@@ -6,7 +6,7 @@ export function PagePlaceholder({
   description?: string;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-2">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="page-title">{title}</h1>
       {description ? (
         <p className="text-sm text-muted-foreground">{description}</p>

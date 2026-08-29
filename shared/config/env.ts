@@ -2,16 +2,24 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/$/, "");
 }
 
-const DEFAULT_BACKEND_API_URL = "http://127.0.0.1:8000/api";
+/** Allow old configs that still end with `/api`. */
+function stripTrailingApiPrefix(value: string) {
+  return value.replace(/\/api$/i, "");
+}
 
-const backendApiUrl = trimTrailingSlash(
-  process.env.BACKEND_API_URL ?? DEFAULT_BACKEND_API_URL,
+/** Origin only — Laravel route prefix `/api` is added when building paths. */
+const DEFAULT_BACKEND_API_URL = "http://127.0.0.1:8000";
+
+const backendApiUrl = stripTrailingApiPrefix(
+  trimTrailingSlash(process.env.BACKEND_API_URL ?? DEFAULT_BACKEND_API_URL),
 );
 
-const publicBackendApiUrl = trimTrailingSlash(
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ??
-    process.env.BACKEND_API_URL ??
-    DEFAULT_BACKEND_API_URL,
+const publicBackendApiUrl = stripTrailingApiPrefix(
+  trimTrailingSlash(
+    process.env.NEXT_PUBLIC_BACKEND_API_URL ??
+      process.env.BACKEND_API_URL ??
+      DEFAULT_BACKEND_API_URL,
+  ),
 );
 
 export const env = {
@@ -26,6 +34,9 @@ export const env = {
   DEV_AUTH_BYPASS:
     process.env.DEV_AUTH_BYPASS === "true" ||
     process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true",
+  TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
+  /** Local-only: fixed token used in request bodies (Cloudflare always-pass test secret/token). */
+  TURNSTILE_TEST_TOKEN: process.env.NEXT_PUBLIC_TURNSTILE_TEST_TOKEN ?? "",
   COOKIE_NAMES: {
     OTP_ACCESS: "du_otp_access_token",
     ACCESS: "du_access_token",
@@ -35,7 +46,21 @@ export const env = {
   IS_PRODUCTION: process.env.NODE_ENV === "production",
 } as const;
 
-export function buildBackendApiUrl(path: string) {
+/** Ensure Laravel `/api` prefix once (paths may be `/auth/...` or `/api/...`). */
+export function toBackendApiPath(path: string) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${env.PUBLIC_BACKEND_API_URL}${normalizedPath}`;
+
+  if (normalizedPath === "/api" || normalizedPath.startsWith("/api/")) {
+    return normalizedPath;
+  }
+
+  return `/api${normalizedPath}`;
+}
+
+export function buildBackendApiUrl(path: string) {
+  return `${env.PUBLIC_BACKEND_API_URL}${toBackendApiPath(path)}`;
+}
+
+export function buildServerBackendApiUrl(path: string) {
+  return `${env.BACKEND_API_URL}${toBackendApiPath(path)}`;
 }

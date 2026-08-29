@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/modules/auth/api/auth.api";
+import type { RequestCodePayload } from "@/shared/lib/auth/otp-debug";
 import { resolvePostLoginPath } from "@/shared/lib/auth/user";
 import { ApiError } from "@/shared/types/global-response";
 
@@ -27,7 +28,7 @@ export function useAuth(options: UseAuthOptions = {}) {
   const redirect = options.redirect ?? null;
 
   const requestCode = useMutation({
-    mutationFn: (email: string) => authApi.requestCode(email),
+    mutationFn: (payload: RequestCodePayload) => authApi.requestCode(payload),
     onSuccess: (response) => {
       if (
         response.data &&

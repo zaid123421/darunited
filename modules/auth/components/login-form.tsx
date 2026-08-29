@@ -3,9 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Mail } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Input } from "@/shared/components/ui/input";
+import { TurnstileWidget } from "@/modules/auth/components/turnstile-widget";
 import { useAuth } from "@/modules/auth/hooks/use-auth";
 import {
   loginSchema,
@@ -15,6 +16,8 @@ import {
   getLastLoginEmail,
   setLastLoginEmail,
 } from "@/shared/lib/auth/last-login-email";
+import { resolveTurnstileToken } from "@/shared/lib/auth/otp-debug";
+import { env } from "@/shared/config/env";
 import { getSafeDashboardRedirect } from "@/shared/lib/safe-redirect";
 import { ApiError } from "@/shared/types/global-response";
 import { cn } from "@/shared/lib/cn";
@@ -23,6 +26,10 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = getSafeDashboardRedirect(searchParams.get("redirect"));
   const { requestCode } = useAuth({ redirect });
+  const usesFixedTestToken = Boolean(env.TURNSTILE_TEST_TOKEN);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(
+    usesFixedTestToken ? env.TURNSTILE_TEST_TOKEN : null,
+  );
   const {
     register,
     handleSubmit,
@@ -43,14 +50,25 @@ export function LoginForm() {
   }, [reset]);
 
   const onSubmit = (values: LoginFormValues) => {
+    const token = resolveTurnstileToken(turnstileToken);
+    if (!token) {
+      return;
+    }
+
     setLastLoginEmail(values.email);
     requestCode.reset();
-    requestCode.mutate(values.email);
+    requestCode.mutate({
+      email: values.email,
+      turnstileToken: token,
+      companyWebsite: null,
+    });
   };
 
   const isRateLimited =
     requestCode.error instanceof ApiError && requestCode.error.statusCode === 429;
   const email = watch("email");
+  const canSubmit =
+    Boolean(resolveTurnstileToken(turnstileToken)) && !requestCode.isPending;
 
   return (
     <div>
@@ -103,6 +121,25 @@ export function LoginForm() {
           </div>
         </div>
 
+        {/* Honeypot — must stay empty; bots that fill it get blocked by backend */}
+        <input
+          type="text"
+          name="companyWebsite"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden
+          className="absolute left-[-9999px] h-0 w-0 opacity-0"
+          defaultValue=""
+        />
+
+        {usesFixedTestToken ? (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+            Local Turnstile test token is active for auth requests.
+          </p>
+        ) : (
+          <TurnstileWidget onToken={setTurnstileToken} />
+        )}
+
         {requestCode.error ? (
           <div
             role="alert"
@@ -119,7 +156,7 @@ export function LoginForm() {
 
         <button
           type="submit"
-          disabled={requestCode.isPending}
+          disabled={!canSubmit}
           className="btn-brand group mt-1 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {requestCode.isPending ? (

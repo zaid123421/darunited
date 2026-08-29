@@ -1,6 +1,6 @@
 import { clearSessionCookies, getSessionCookies } from "@/shared/lib/cookies";
 import { performTokenRefresh } from "@/shared/lib/auth/session";
-import { env } from "@/shared/config/env";
+import { buildServerBackendApiUrl } from "@/shared/config/env";
 import type { ApiErrorBody, GlobalResponse } from "@/shared/types/global-response";
 import { ApiError } from "@/shared/types/global-response";
 
@@ -31,7 +31,7 @@ export async function proxyToBackend<T>(
     requestHeaders.Authorization = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(`${env.BACKEND_API_URL}${path}`, {
+  const response = await fetch(buildServerBackendApiUrl(path), {
     method,
     headers: requestHeaders,
     body:

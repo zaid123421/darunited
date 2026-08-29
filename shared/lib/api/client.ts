@@ -9,7 +9,9 @@ import type { ApiErrorBody, GlobalResponse } from "@/shared/types/global-respons
 import { ApiError } from "@/shared/types/global-response";
 
 function isSessionSyncPath(path: string) {
-  return path.startsWith("/api/auth/session/");
+  return (
+    path.startsWith("/auth/session/") || path.startsWith("/api/auth/session/")
+  );
 }
 
 function shouldUseDirectBackend(path: string) {
@@ -17,11 +19,9 @@ function shouldUseDirectBackend(path: string) {
     return false;
   }
 
-  // Auth helpers already use `/auth/*`. Admin client calls use `/api/admin/*`
-  // BFF paths; on Netlify the catch-all BFF route returns empty 500s, so send
-  // those straight to Laravel with a Bearer token instead.
+  // Same-origin `/auth/*` is the Next BFF (rewritten from /api/auth).
+  // Laravel is only hit via absolute backend URLs or admin paths.
   return (
-    path.startsWith("/auth/") ||
     path.startsWith("/api/admin/") ||
     path.startsWith("/admin/")
   );
@@ -30,10 +30,8 @@ function shouldUseDirectBackend(path: string) {
 function toBackendPath(path: string) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-  if (normalizedPath.startsWith("/api/")) {
-    return normalizedPath.slice(4);
-  }
-
+  // Admin BFF paths are `/api/admin/...`; Laravel expects `/api/admin/...`.
+  // Auth direct paths are already `/auth/...` and get the `/api` prefix in buildBackendApiUrl.
   return normalizedPath;
 }
 

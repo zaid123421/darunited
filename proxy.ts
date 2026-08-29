@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { RefreshTokenData } from "@/modules/auth/types";
-import { env } from "@/shared/config/env";
+import { buildServerBackendApiUrl, env } from "@/shared/config/env";
 import { getJwtRemainingSeconds, isJwtExpired } from "@/shared/lib/auth/jwt";
 import {
   canAccessDashboard,
@@ -104,7 +104,7 @@ async function refreshSessionForDashboard(
   existingRole: UserRole | null,
 ): Promise<NextResponse | null> {
   try {
-    const refreshResponse = await fetch(`${env.BACKEND_API_URL}/auth/refresh`, {
+    const refreshResponse = await fetch(buildServerBackendApiUrl("/auth/refresh"), {
       method: "POST",
       headers: {
         Accept: "application/json",

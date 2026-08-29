@@ -6,10 +6,11 @@ import { unregisterFcmToken } from "@/modules/notifications/lib/fcm-token";
 import {
   buildRequestCodeBody,
   buildResendCodeBody,
+  type RequestCodePayload,
 } from "@/shared/lib/auth/otp-debug";
 import { sanitizeRefreshResponse } from "@/shared/lib/auth/otp-session";
 import { syncSessionFromCookies } from "@/shared/lib/auth/session-bootstrap";
-import { env } from "@/shared/config/env";
+import { buildBackendApiUrl, env } from "@/shared/config/env";
 import type {
   DevBypassLoginData,
   RefreshTokenData,
@@ -26,7 +27,7 @@ async function syncSessionCookies(tokens: {
   access_expires_at: string;
   refresh_expires_at: string;
 }) {
-  await clientFetch("/api/auth/session/tokens", {
+  await clientFetch("/auth/session/tokens", {
     method: "POST",
     body: JSON.stringify({
       access_token: tokens.access_token,
@@ -41,7 +42,7 @@ async function clearSyncedSession() {
   clientSession.clear();
 
   try {
-    await clientFetch("/api/auth/session/tokens", {
+    await clientFetch("/auth/session/tokens", {
       method: "DELETE",
     });
   } catch {
@@ -54,13 +55,13 @@ function authHeaders(token: string | null) {
 }
 
 export const authApi = {
-  requestCode: async (email: string) => {
+  requestCode: async (payload: RequestCodePayload) => {
     if (env.DEV_AUTH_BYPASS) {
       const response = await clientFetch<DevBypassLoginData>(
-        "/api/auth/dev-bypass",
+        "/auth/dev-bypass",
         {
           method: "POST",
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email: payload.email }),
         },
       );
 
@@ -73,15 +74,15 @@ export const authApi = {
       return response;
     }
 
-    return clientFetch<RequestCodePublicData>("/api/auth/request-code", {
+    return clientFetch<RequestCodePublicData>("/auth/request-code", {
       method: "POST",
-      body: JSON.stringify(buildRequestCodeBody(email)),
+      body: JSON.stringify(buildRequestCodeBody(payload)),
     });
   },
 
   verifyCode: async (code: string) => {
     const response = await clientFetch<VerifyCodePublicData>(
-      "/api/auth/verify-code",
+      "/auth/verify-code",
       {
         method: "POST",
         body: JSON.stringify({ code }),
@@ -106,7 +107,7 @@ export const authApi = {
   },
 
   resendCode: async () => {
-    return clientFetch<RequestCodePublicData>("/api/auth/resend-code", {
+    return clientFetch<RequestCodePublicData>("/auth/resend-code", {
       method: "POST",
       body: JSON.stringify(buildResendCodeBody()),
     });
@@ -116,7 +117,7 @@ export const authApi = {
     await unregisterFcmToken();
 
     if (!env.USE_DIRECT_BACKEND_API) {
-      const response = await clientFetch<null>("/api/auth/logout", {
+      const response = await clientFetch<null>("/auth/logout", {
         method: "POST",
         body: JSON.stringify({}),
       });
@@ -131,7 +132,7 @@ export const authApi = {
 
     if (accessToken) {
       try {
-        await clientFetch<null>("/auth/logout", {
+        await clientFetch<null>(buildBackendApiUrl("/auth/logout"), {
           method: "POST",
           body: JSON.stringify(
             refreshToken ? { refresh_token: refreshToken } : {},
@@ -154,7 +155,7 @@ export const authApi = {
 
   refresh: async () => {
     if (!env.USE_DIRECT_BACKEND_API) {
-      return clientFetch<RefreshTokenPublicData>("/api/auth/refresh", {
+      return clientFetch<RefreshTokenPublicData>("/auth/refresh", {
         method: "POST",
         body: JSON.stringify({}),
       });
@@ -166,10 +167,13 @@ export const authApi = {
       throw new ApiError("No refresh token available", 401);
     }
 
-    const response = await clientFetch<RefreshTokenData>("/auth/refresh", {
-      method: "POST",
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
+    const response = await clientFetch<RefreshTokenData>(
+      buildBackendApiUrl("/auth/refresh"),
+      {
+        method: "POST",
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      },
+    );
 
     clientSession.setTokens(response.data);
     await syncSessionCookies(response.data);

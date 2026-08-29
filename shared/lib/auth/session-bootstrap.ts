@@ -15,7 +15,7 @@ export async function syncSessionFromCookies(): Promise<BootstrapResult> {
   let response: Response;
 
   try {
-    response = await fetch("/api/auth/session/bootstrap", {
+    response = await fetch("/auth/session/bootstrap", {
       method: "POST",
       credentials: "include",
       headers: {
