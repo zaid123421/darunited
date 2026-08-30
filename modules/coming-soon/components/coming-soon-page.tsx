@@ -21,7 +21,7 @@ function ComingSoonLogo({
   preload?: boolean;
 }) {
   return (
-    <div className={cn("flex items-center gap-0.5 lg:gap-5", className)}>
+    <div className={cn("flex items-center gap-0 lg:gap-1.5", className)}>
       <Image
         src="/favicons/submark-red.png"
         alt=""
