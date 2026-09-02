@@ -76,7 +76,7 @@ function ComingSoonBackground() {
         {...rest}
         alt=""
         srcSet={mobile}
-        className="h-full w-full object-cover object-top"
+        className="h-[calc(100%+50px)] w-full -translate-y-[50px] object-cover object-top"
       />
     </picture>
   );
@@ -84,35 +84,35 @@ function ComingSoonBackground() {
 
 export function ComingSoonPage() {
   return (
-    <div className="min-h-screen bg-background lg:flex lg:items-start lg:justify-center">
-      <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-transparent text-foreground max-lg:min-h-[800px] lg:h-[1180px] lg:min-h-0 lg:max-w-[1920px]">
+    <div className="min-h-screen bg-background">
+      <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-transparent text-foreground max-lg:min-h-[750px]">
         <ComingSoonBackground />
 
         <header className="absolute inset-x-0 top-0 z-10 flex h-[56px] shrink-0 items-center justify-between bg-transparent px-[20px] lg:h-[96px] lg:px-[80px]">
           <ComingSoonLogo
-            className="h-[16.5px] w-[100.3px] lg:h-[40px] lg:w-[279.6px]"
+            className="h-[19.5px] w-[119px] shrink-0 lg:h-[38px] lg:w-[231px]"
             preload
           />
           <a
             href="#"
-            className="inline-flex items-center bg-transparent text-[8px] font-normal uppercase text-[var(--du-white)] transition-colors duration-150 hover:text-[var(--du-grey)] lg:h-[40px] lg:px-6 lg:text-[20px]"
+            className="inline-flex shrink-0 items-center bg-transparent text-[9px] font-normal uppercase text-[var(--du-white)] transition-colors duration-150 hover:text-[var(--du-grey)] lg:text-[14px]"
           >
             Contact us
           </a>
         </header>
 
-        <main className="relative z-10 flex flex-col px-[20px] pt-[173px] lg:px-[80px] lg:pt-[353px] lg:pb-[297px]">
-          <p className="text-[19px] font-medium uppercase leading-none text-primary lg:text-[38px]">
+        <main className="relative z-10 flex flex-col px-[20px] pt-[160px] lg:px-[80px] lg:pt-[190px]">
+          <p className="text-[19px] font-medium uppercase leading-none text-primary lg:text-[26px]">
             Built beyond steel
           </p>
 
-          <h1 className="mt-[9px] font-heading text-[49px] font-medium uppercase leading-[49px] text-[color:var(--du-white)] lg:mt-[26px] lg:h-[170px] lg:text-[96px] lg:leading-[85px]">
+          <h1 className="mt-[17px] font-heading text-[49px] font-medium uppercase leading-[49px] text-[color:var(--du-white)] lg:mt-[17px] lg:h-[117px] lg:text-[67px] lg:leading-[62px]">
             Coming
             <br />
             Soon
           </h1>
 
-          <p className="mt-[21px] max-w-[320px] text-[11px] font-normal leading-[14px] text-foreground lg:mt-[26px] lg:max-w-[560px] lg:text-[24px] lg:leading-[32px]">
+          <p className="mt-[17px] max-w-[320px] text-[11px] font-normal leading-[14px] text-foreground lg:mt-[17px] lg:max-w-[375px] lg:text-[16px] lg:leading-[22px]">
             Our site is under construction, but our facilities are fully
             operational. Contact us today for all metal and steel manufacturing
             inquiries.
@@ -120,23 +120,23 @@ export function ComingSoonPage() {
 
           <a
             href={`mailto:${INQUIRY_EMAIL}`}
-            className="mt-[8px] inline-flex h-[28px] w-[83px] items-center justify-center bg-primary text-[10px] font-normal uppercase text-primary-foreground transition-opacity hover:opacity-90 lg:mt-[26px] lg:h-[48px] lg:w-[144px] lg:text-[18px] lg:font-medium"
+            className="mt-[17px] inline-flex h-[28px] w-[83px] items-center justify-center bg-primary text-[10px] font-medium uppercase text-primary-foreground transition-opacity hover:opacity-90 lg:mt-[17px] lg:h-[33px] lg:w-[101px] lg:text-[12px]"
           >
             Send inquiry
           </a>
         </main>
 
-        <footer className="relative z-10 mt-auto flex h-[80px] shrink-0 items-center justify-between bg-background px-[20px] lg:mt-0 lg:h-[100px] lg:px-[80px]">
+        <footer className="relative z-10 mt-auto flex h-[80px] shrink-0 items-center justify-between bg-background px-[20px] lg:h-[100px] lg:px-[80px]">
           <div className="flex flex-col justify-center gap-0.5 lg:gap-1">
-            <ComingSoonLogo className="h-[16.5px] w-[100.3px] lg:h-[32px] lg:w-[195px]" />
-            <p className="text-[8px] font-normal text-foreground lg:text-[12px]">
+            <ComingSoonLogo className="h-[16.5px] w-[101px] lg:h-[26px] lg:w-[159px]" />
+            <p className="text-[8px] font-normal text-foreground lg:text-[10px]">
               ©2026 All rights reserved.
             </p>
           </div>
 
           <nav
             aria-label="Social media"
-            className="flex items-center gap-3 lg:gap-5"
+            className="flex items-center gap-3 lg:gap-4"
           >
             {SOCIAL_LINKS.map((link) => {
               const Icon = socialIcons[link.name];
@@ -147,7 +147,13 @@ export function ComingSoonPage() {
                   aria-label={link.name}
                   className="text-primary transition-opacity hover:opacity-80"
                 >
-                  <Icon className="h-4 w-4 lg:h-6 lg:w-6" />
+                  <Icon
+                    className={
+                      link.name === "Instagram"
+                        ? "h-4 w-4 shrink-0 lg:h-5 lg:w-5"
+                        : "h-4 w-auto shrink-0 lg:h-5"
+                    }
+                  />
                 </a>
               );
             })}
