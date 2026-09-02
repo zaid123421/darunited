@@ -1,5 +1,9 @@
 import Image, { getImageProps } from "next/image";
-import { INQUIRY_EMAIL, SOCIAL_LINKS } from "@/modules/coming-soon/constants";
+import {
+  INQUIRY_EMAIL,
+  SOCIAL_LINKS,
+  WHATSAPP_URL,
+} from "@/modules/coming-soon/constants";
 import {
   FacebookIcon,
   InstagramIcon,
@@ -88,14 +92,17 @@ export function ComingSoonPage() {
       <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-transparent text-foreground max-lg:min-h-[750px]">
         <ComingSoonBackground />
 
-        <header className="absolute inset-x-0 top-0 z-10 flex h-[56px] shrink-0 items-center justify-between bg-transparent px-[20px] lg:h-[96px] lg:px-[80px]">
+        <header className="absolute inset-x-0 top-0 z-20 flex h-[56px] shrink-0 items-center justify-between bg-transparent px-[20px] lg:h-[96px] lg:px-[80px]">
           <ComingSoonLogo
             className="h-[19.5px] w-[119px] shrink-0 lg:h-[38px] lg:w-[231px]"
             preload
           />
           <a
-            href="#"
-            className="inline-flex shrink-0 items-center bg-transparent text-[9px] font-normal uppercase text-[var(--du-white)] transition-colors duration-150 hover:text-[var(--du-grey)] lg:text-[14px]"
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Contact us on WhatsApp"
+            className="cursor-pointer inline-flex shrink-0 items-center bg-transparent text-[9px] font-normal uppercase text-[var(--du-white)] transition-colors duration-150 hover:text-[var(--du-grey)] lg:text-[14px]"
           >
             Contact us
           </a>
