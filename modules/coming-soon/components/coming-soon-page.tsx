@@ -109,17 +109,18 @@ export function ComingSoonPage() {
         </header>
 
         <main className="relative z-10 flex flex-col px-[20px] pt-[160px] lg:px-[80px] lg:pt-[190px]">
-          <p className="text-[19px] font-medium uppercase leading-none text-primary lg:text-[26px]">
+          <p className="text-[19px] font-medium uppercase leading-none text-primary lg:text-[28px]">
             Built beyond steel
           </p>
 
-          <h1 className="mt-[17px] font-heading text-[49px] font-medium uppercase leading-[49px] text-[color:var(--du-white)] lg:mt-[17px] lg:h-[117px] lg:text-[67px] lg:leading-[62px]">
+          <h1 className="mt-[17px] font-heading text-[49px] font-medium uppercase leading-[49px] text-[color:var(--du-white)] lg:mt-[17px] lg:h-[117px] lg:text-[69px] lg:leading-[62px]">
             Coming
             <br />
             Soon
           </h1>
 
-          <p className="mt-[17px] max-w-[320px] text-[11px] font-normal leading-[14px] text-foreground lg:mt-[17px] lg:max-w-[375px] lg:text-[16px] lg:leading-[22px]">
+          {/* The lg:max-w-[375] was */}
+          <p className="mt-[17px] max-w-[320px] text-[11px] font-normal leading-[14px] text-foreground lg:mt-[17px] lg:max-w-[450px] lg:text-[20px] lg:leading-[22px] text-justify">
             Our site is under construction, but our facilities are fully
             operational. Contact us today for all metal and steel manufacturing
             inquiries.
@@ -127,7 +128,7 @@ export function ComingSoonPage() {
 
           <a
             href={`mailto:${INQUIRY_EMAIL}`}
-            className="mt-[17px] inline-flex h-[28px] w-[83px] items-center justify-center bg-primary text-[10px] font-medium uppercase text-primary-foreground transition-opacity hover:opacity-90 lg:mt-[17px] lg:h-[33px] lg:w-[101px] lg:text-[12px]"
+            className="mt-[17px] inline-flex h-[28px] w-[83px] items-center justify-center bg-primary text-[10px] font-medium uppercase text-primary-foreground transition-opacity hover:opacity-90 lg:mt-[17px] lg:h-[33px] lg:w-[101px] lg:text-[14px]"
           >
             Send inquiry
           </a>
