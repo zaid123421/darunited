@@ -1,9 +1,7 @@
 import { ShowCategoryPage } from "@/modules/categories/components/show-category-page";
 import { CategoryNotFound } from "@/modules/categories/components/category-not-found";
 import { categoriesApi } from "@/modules/categories/api/categories.api";
-import { buildCategoryShowBasePath } from "@/modules/categories/lib/build-category-show-base-path";
-import { getMainPicFromCategory } from "@/modules/categories/lib/category-media-mappers";
-import type { CategoryMedia } from "@/modules/categories/types";
+import type { SubcategoryListData } from "@/modules/subcategories/types";
 import { Card } from "@/shared/components/ui/card";
 import { ApiError } from "@/shared/types/global-response";
 
@@ -12,32 +10,50 @@ interface ShowCategoryRoutePageProps {
   searchParams: Promise<{ page?: string }>;
 }
 
+const EMPTY_SUBCATEGORIES: SubcategoryListData = {
+  subCategories: [],
+  pagination: {
+    current_page: 1,
+    last_page: 1,
+    per_page: 10,
+    total: 0,
+    from: null,
+    to: null,
+    has_more: false,
+  },
+};
+
 export default async function ShowCategoryRoutePage({
   params,
   searchParams,
 }: ShowCategoryRoutePageProps) {
   const { id } = await params;
   const { page: pageParam } = await searchParams;
-  const mediaPage = Math.max(1, Number(pageParam) || 1);
+  const page = Math.max(1, Number(pageParam) || 1);
 
   try {
-    const response = await categoriesApi.getById(id, { page: mediaPage, per_page: 10 });
-    const category = response.data.category;
+    const categoryResponse = await categoriesApi.getById(id);
 
-    let mainPic: CategoryMedia | undefined = getMainPicFromCategory(category);
+    let subcategories = EMPTY_SUBCATEGORIES;
+    let subcategoriesLoadError = false;
 
-    if (!mainPic && mediaPage !== 1) {
-      const firstPageResponse = await categoriesApi.getById(id, { page: 1, per_page: 10 });
-      mainPic = getMainPicFromCategory(firstPageResponse.data.category);
+    try {
+      const subcategoriesResponse = await categoriesApi.getSubcategories(id, {
+        page,
+      });
+      subcategories = {
+        subCategories: subcategoriesResponse.data.subCategories,
+        pagination: subcategoriesResponse.data.pagination,
+      };
+    } catch {
+      subcategoriesLoadError = true;
     }
-
-    const mediaBasePath = buildCategoryShowBasePath(id);
 
     return (
       <ShowCategoryPage
-        category={category}
-        mainPic={mainPic}
-        mediaBasePath={mediaBasePath}
+        category={categoryResponse.data.category}
+        subcategories={subcategories}
+        subcategoriesLoadError={subcategoriesLoadError}
       />
     );
   } catch (error) {
@@ -50,12 +66,13 @@ export default async function ShowCategoryRoutePage({
         <div>
           <h1 className="page-title">Category Details</h1>
           <p className="text-sm text-muted-foreground">
-            View category information and media.
+            View category information.
           </p>
         </div>
         <Card className="border-destructive/30 bg-destructive/5">
           <p className="text-sm text-destructive">
-            Unable to load this category. Please refresh the page or try again later.
+            Unable to load this category. Please refresh the page or try again
+            later.
           </p>
         </Card>
       </div>

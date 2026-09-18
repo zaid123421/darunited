@@ -3,24 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronLeft, Pencil, Trash2, Video } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 import { useDeleteSubcategory } from "@/modules/subcategories/hooks/use-delete-subcategory";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
 import {
-  getGalleryFromSubcategory,
-  getMainPicFromSubcategory,
-  isVideoMedia,
+  getSubcategoryCategoryId,
+  getSubcategoryCategoryTitle,
+  getSubcategoryPicUrl,
 } from "@/modules/subcategories/lib/subcategory-media-mappers";
-import type { SubcategoryDetail, SubcategoryMedia } from "@/modules/subcategories/types";
+import type { SubcategoryDetail } from "@/modules/subcategories/types";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
 import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
-import { Pagination } from "@/shared/components/ui/pagination";
 
 interface ShowSubcategoryPageProps {
   subcategory: SubcategoryDetail;
-  mainPic?: SubcategoryMedia;
-  mediaBasePath: string;
 }
 
 type FeedbackState = {
@@ -28,19 +25,14 @@ type FeedbackState = {
   message: string;
 };
 
-export function ShowSubcategoryPage({
-  subcategory,
-  mainPic,
-  mediaBasePath,
-}: ShowSubcategoryPageProps) {
+export function ShowSubcategoryPage({ subcategory }: ShowSubcategoryPageProps) {
   const router = useRouter();
   const { canWrite } = usePermissions();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
-
-  const resolvedMainPic = mainPic ?? getMainPicFromSubcategory(subcategory);
-  const galleryItems = getGalleryFromSubcategory(subcategory);
-  const pagination = subcategory.pagination;
+  const picUrl = getSubcategoryPicUrl(subcategory);
+  const categoryId = getSubcategoryCategoryId(subcategory);
+  const categoryTitle = getSubcategoryCategoryTitle(subcategory);
 
   const deleteSubcategory = useDeleteSubcategory({
     onSuccess: () => {
@@ -51,7 +43,8 @@ export function ShowSubcategoryPage({
       setShowDeleteDialog(false);
       setFeedback({
         type: "error",
-        message: error.message || "Failed to delete subcategory. Please try again.",
+        message:
+          error.message || "Failed to delete subcategory. Please try again.",
       });
     },
   });
@@ -73,7 +66,6 @@ export function ShowSubcategoryPage({
   };
 
   const hasDescription = Boolean(subcategory.description?.trim());
-  const categoryLabel = subcategory.categoryTitle?.trim() || `Category #${subcategory.categoryId}`;
 
   return (
     <div className="flex min-h-full w-full flex-col gap-6 pb-10">
@@ -88,9 +80,7 @@ export function ShowSubcategoryPage({
           </Link>
 
           <h1 className="page-title mt-4">{subcategory.title}</h1>
-          <p className="page-subtitle mt-1">
-            Subcategory details and media gallery
-          </p>
+          <p className="page-subtitle mt-1">Subcategory details</p>
         </div>
 
         {canWrite ? (
@@ -134,23 +124,42 @@ export function ShowSubcategoryPage({
             <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Title
             </dt>
-            <dd className="text-base font-medium text-foreground">{subcategory.title}</dd>
+            <dd className="text-base font-medium text-foreground">
+              {subcategory.title}
+            </dd>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Category
             </dt>
-            <dd className="text-base font-medium text-foreground">{categoryLabel}</dd>
+            <dd className="text-base font-medium text-foreground">
+              {categoryId ? (
+                <Link
+                  href={`/dashboard/categories/${categoryId}`}
+                  className="transition-colors hover:text-primary"
+                >
+                  {categoryTitle || `Category #${categoryId}`}
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">No category linked.</span>
+              )}
+            </dd>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <dt className="text-sm font-medium text-muted-foreground">Description</dt>
+            <dt className="text-sm font-medium text-muted-foreground">
+              Description
+            </dt>
             <dd className="text-sm leading-relaxed text-foreground">
               {hasDescription ? (
-                <span className="whitespace-pre-wrap">{subcategory.description}</span>
+                <span className="whitespace-pre-wrap">
+                  {subcategory.description}
+                </span>
               ) : (
-                <span className="text-muted-foreground">No description provided.</span>
+                <span className="text-muted-foreground">
+                  No description provided.
+                </span>
               )}
             </dd>
           </div>
@@ -162,77 +171,20 @@ export function ShowSubcategoryPage({
           Main Thumbnail
         </CardTitle>
 
-        {resolvedMainPic ? (
+        {picUrl ? (
           <div className="aspect-video w-full max-w-xl overflow-hidden rounded-xl border border-border bg-muted">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={resolvedMainPic.url}
+              src={picUrl}
               alt={`${subcategory.title} main thumbnail`}
               className="h-full w-full object-cover"
             />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No main thumbnail uploaded.</p>
+          <p className="text-sm text-muted-foreground">
+            No main thumbnail uploaded.
+          </p>
         )}
-      </Card>
-
-      <Card className="p-4 sm:p-6">
-        <CardTitle className="mb-4 text-sm font-semibold sm:mb-5 sm:text-base">
-          Gallery Media
-        </CardTitle>
-
-        {galleryItems.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No gallery media uploaded.</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {subcategory.media
-              .filter((item) => item.role === "gallery")
-              .sort((left, right) => left.order - right.order)
-              .map((item) => (
-                <div
-                  key={item.id}
-                  className="relative aspect-square overflow-hidden rounded-xl border border-border bg-muted"
-                >
-                  {isVideoMedia(item) ? (
-                    <>
-                      <video
-                        src={item.url}
-                        className="h-full w-full object-cover"
-                        muted
-                        playsInline
-                        preload="metadata"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                        <Video className="h-8 w-8 text-white drop-shadow" />
-                      </div>
-                    </>
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.url}
-                      alt={item.file_name}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </div>
-              ))}
-          </div>
-        )}
-
-        {pagination && pagination.total > 0 ? (
-          <div className="mt-6 border-t border-border pt-6">
-            <Pagination
-              currentPage={pagination.current_page}
-              lastPage={pagination.last_page}
-              total={pagination.total}
-              from={pagination.from}
-              to={pagination.to}
-              hasMore={pagination.has_more}
-              basePath={mediaBasePath}
-              itemLabel="media items"
-            />
-          </div>
-        ) : null}
       </Card>
 
       <ConfirmDialog

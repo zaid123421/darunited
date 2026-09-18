@@ -11,12 +11,15 @@ const AUTH_PATHS_WITHOUT_REFRESH = [
   "/auth/resend-code",
   "/auth/logout",
   "/auth/session/",
+  "/auth/recovery/",
   "/api/auth/refresh",
   "/api/auth/request-code",
   "/api/auth/verify-code",
   "/api/auth/resend-code",
   "/api/auth/logout",
   "/api/auth/session/",
+  "/api/auth/recovery/",
+  "/api/admin/account/accept-invitation",
 ];
 
 let refreshPromise: Promise<boolean> | null = null;

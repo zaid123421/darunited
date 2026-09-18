@@ -42,6 +42,8 @@ export const env = {
     ACCESS: "du_access_token",
     REFRESH: "du_refresh_token",
     ROLE: "du_user_role",
+    RECOVERY_OTP_ACCESS: "du_recovery_otp_access_token",
+    RECOVERY_ACCESS: "du_recovery_access_token",
   },
   IS_PRODUCTION: process.env.NODE_ENV === "production",
 } as const;

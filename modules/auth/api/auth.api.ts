@@ -1,6 +1,7 @@
 import { clientFetch } from "@/shared/lib/api/client";
 import { ensureFcmTokenRegistered } from "@/modules/notifications/lib/fcm-token";
 import { logNotificationDebug } from "@/modules/notifications/lib/notification-debug";
+import { NOTIFICATIONS_ENABLED } from "@/modules/notifications/constants";
 import { clientSession } from "@/shared/lib/auth/client-session";
 import { unregisterFcmToken } from "@/modules/notifications/lib/fcm-token";
 import {
@@ -13,8 +14,13 @@ import { syncSessionFromCookies } from "@/shared/lib/auth/session-bootstrap";
 import { buildBackendApiUrl, env } from "@/shared/config/env";
 import type {
   DevBypassLoginData,
+  MeUser,
   RefreshTokenData,
   RefreshTokenPublicData,
+  RecoveryPrimaryEmailRequestData,
+  RecoveryPrimaryEmailVerifyData,
+  RecoveryRequestCodePublicData,
+  RecoveryVerifyCodePublicData,
   RequestCodePublicData,
   VerifyCodePublicData,
 } from "@/modules/auth/types";
@@ -95,13 +101,15 @@ export const authApi = {
       await syncSessionFromCookies();
     }
 
-    void ensureFcmTokenRegistered().then((result) => {
-      if (!result.ok) {
-        logNotificationDebug("FCM registration deferred after login", {
-          reason: result.reason,
-        });
-      }
-    });
+    if (NOTIFICATIONS_ENABLED) {
+      void ensureFcmTokenRegistered().then((result) => {
+        if (!result.ok) {
+          logNotificationDebug("FCM registration deferred after login", {
+            reason: result.reason,
+          });
+        }
+      });
+    }
 
     return response;
   },
@@ -113,8 +121,56 @@ export const authApi = {
     });
   },
 
+  me: async () => {
+    return clientFetch<MeUser>("/auth/me", {
+      method: "GET",
+    });
+  },
+
+  requestRecoveryCode: async (payload: RequestCodePayload) => {
+    return clientFetch<RecoveryRequestCodePublicData>(
+      "/auth/recovery/request-code",
+      {
+        method: "POST",
+        body: JSON.stringify(buildRequestCodeBody(payload)),
+      },
+    );
+  },
+
+  verifyRecoveryCode: async (code: string) => {
+    return clientFetch<RecoveryVerifyCodePublicData>(
+      "/auth/recovery/verify-code",
+      {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      },
+    );
+  },
+
+  requestNewPrimaryEmailCode: async (newEmail: string) => {
+    return clientFetch<RecoveryPrimaryEmailRequestData>(
+      "/auth/recovery/primary-email/request-code",
+      {
+        method: "POST",
+        body: JSON.stringify({ newEmail: newEmail.trim().toLowerCase() }),
+      },
+    );
+  },
+
+  verifyNewPrimaryEmail: async (code: string) => {
+    return clientFetch<RecoveryPrimaryEmailVerifyData>(
+      "/auth/recovery/primary-email/verify-code",
+      {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      },
+    );
+  },
+
   logout: async () => {
-    await unregisterFcmToken();
+    if (NOTIFICATIONS_ENABLED) {
+      await unregisterFcmToken();
+    }
 
     if (!env.USE_DIRECT_BACKEND_API) {
       const response = await clientFetch<null>("/auth/logout", {

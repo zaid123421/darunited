@@ -13,7 +13,9 @@ import {
   MessageSquare,
   Package,
   Phone,
+  Shield,
   User,
+  Users,
   X,
 } from "lucide-react";
 import { BrandMark } from "@/shared/components/brand/brand-mark";
@@ -40,6 +42,7 @@ type NavLinkItem = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: number;
+  superAdminOnly?: boolean;
 };
 
 type NavSection = {
@@ -123,6 +126,25 @@ const navSections: NavSection[] = [
       },
     ],
   },
+  {
+    label: "Administration",
+    items: [
+      {
+        type: "link",
+        href: "/dashboard/accounts",
+        label: "Accounts",
+        icon: Users,
+        superAdminOnly: true,
+      },
+      {
+        type: "link",
+        href: "/dashboard/account/security",
+        label: "Account Security",
+        icon: Shield,
+        superAdminOnly: true,
+      },
+    ],
+  },
 ];
 
 function isPathActive(pathname: string, href: string) {
@@ -146,7 +168,7 @@ type SidebarProps = {
 export function Sidebar({ open = true, onNavigate, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
-  const { canWrite } = usePermissions();
+  const { canWrite, isSuperAdmin } = usePermissions();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     () => {
       const initial: Record<string, boolean> = {};
@@ -164,21 +186,30 @@ export function Sidebar({ open = true, onNavigate, onClose }: SidebarProps) {
     },
   );
 
-  const visibleSections = navSections.map((section) => ({
-    ...section,
-    items: section.items.map((item) => {
-      if (item.type !== "expandable" || canWrite) {
-        return item;
-      }
+  const visibleSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items
+        .filter((item) => {
+          if (item.type === "link" && item.superAdminOnly && !isSuperAdmin) {
+            return false;
+          }
+          return true;
+        })
+        .map((item) => {
+          if (item.type !== "expandable" || canWrite) {
+            return item;
+          }
 
-      return {
-        ...item,
-        children: item.children.filter(
-          (child) => !child.href.endsWith("/add"),
-        ),
-      };
-    }),
-  }));
+          return {
+            ...item,
+            children: item.children.filter(
+              (child) => !child.href.endsWith("/add"),
+            ),
+          };
+        }),
+    }))
+    .filter((section) => section.items.length > 0);
 
   useEffect(() => {
     for (const section of navSections) {

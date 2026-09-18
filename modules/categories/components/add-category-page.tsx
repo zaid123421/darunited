@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { EntityMediaSection } from "@/modules/media/components/entity-media-section";
+import { EntityMainPicSection } from "@/modules/media/components/entity-main-pic-section";
 import { CATEGORY_FORM_DEFAULTS } from "@/modules/categories/constants";
 import { useCreateCategory } from "@/modules/categories/hooks/use-create-category";
 import { buildCategoryFormData } from "@/modules/categories/lib/build-category-form-data";
@@ -15,8 +15,10 @@ import {
   type CategoryFormSubmitValues,
   type CategoryFormValues,
 } from "@/modules/categories/schemas/category.schema";
-import { useMediaUpload } from "@/modules/media/hooks/use-media-upload";
-import { INVALID_IMAGE_TYPE_MESSAGE, isAllowedImageFile } from "@/modules/media/lib/media-file-validation";
+import {
+  INVALID_IMAGE_TYPE_MESSAGE,
+  isAllowedImageFile,
+} from "@/modules/media/lib/media-file-validation";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
@@ -26,14 +28,10 @@ import { ApiError } from "@/shared/types/global-response";
 
 export function AddCategoryPage() {
   const createCategory = useCreateCategory();
-  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [mainPicPreview, setMainPicPreview] = useState<string | null>(null);
+  const [mainPicFile, setMainPicFile] = useState<File | null>(null);
+  const [mainPicError, setMainPicError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
-  const { media, mainIndex, addFiles, removeAt, reorderMedia } = useMediaUpload(
-    [],
-    {
-      onValidationError: setMediaError,
-    },
-  );
 
   const {
     register,
@@ -55,17 +53,41 @@ export function AddCategoryPage() {
     if (errors.title?.type === "server") {
       clearErrors("title");
     }
-    // Only clear server title errors when the user edits the field.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, clearErrors]);
 
   useEffect(() => {
-    if (mediaError) {
-      setMediaError(null);
+    return () => {
+      if (mainPicPreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(mainPicPreview);
+      }
+    };
+  }, [mainPicPreview]);
+
+  const handleMainPicSelect = (file: File) => {
+    if (!isAllowedImageFile(file)) {
+      setMainPicError(INVALID_IMAGE_TYPE_MESSAGE);
+      return;
     }
-    // Only clear media errors when the user changes uploaded files.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [media]);
+
+    if (mainPicPreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(mainPicPreview);
+    }
+
+    setMainPicFile(file);
+    setMainPicPreview(URL.createObjectURL(file));
+    setMainPicError(null);
+  };
+
+  const handleMainPicRemove = () => {
+    if (mainPicPreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(mainPicPreview);
+    }
+
+    setMainPicPreview(null);
+    setMainPicFile(null);
+    setMainPicError(null);
+  };
 
   const handleApiError = (error: unknown) => {
     if (!(error instanceof ApiError)) {
@@ -79,8 +101,8 @@ export function AddCategoryPage() {
       setError("title", { type: "server", message: parsed.title });
     }
 
-    if (parsed.media) {
-      setMediaError(parsed.media);
+    if (parsed.mainPic || parsed.media) {
+      setMainPicError(parsed.mainPic ?? parsed.media ?? null);
     }
 
     if (parsed.general) {
@@ -89,25 +111,25 @@ export function AddCategoryPage() {
   };
 
   const onSubmit = (values: CategoryFormSubmitValues) => {
-    setMediaError(null);
+    setMainPicError(null);
     setGeneralError(null);
     clearErrors("title");
     createCategory.reset();
 
-    const hasInvalidImage = media.some(
-      (item) => item.kind === "image" && item.file && !isAllowedImageFile(item.file),
-    );
+    if (!mainPicFile) {
+      setMainPicError("A main image is required.");
+      return;
+    }
 
-    if (hasInvalidImage) {
-      setMediaError(INVALID_IMAGE_TYPE_MESSAGE);
+    if (!isAllowedImageFile(mainPicFile)) {
+      setMainPicError(INVALID_IMAGE_TYPE_MESSAGE);
       return;
     }
 
     const formData = buildCategoryFormData({
       title: values.title,
       description: values.description,
-      media,
-      mainIndex,
+      mainPicFile,
     });
 
     createCategory.mutate(formData, {
@@ -116,7 +138,7 @@ export function AddCategoryPage() {
   };
 
   const titleError = errors.title?.message;
-  const showGeneralError = generalError && !titleError && !mediaError;
+  const showGeneralError = generalError && !titleError && !mainPicError;
 
   return (
     <div className="flex min-h-full w-full flex-col pb-24 sm:pb-28">
@@ -129,11 +151,9 @@ export function AddCategoryPage() {
           Back to Categories
         </Link>
 
-        <h1 className="page-title mt-4">
-          Add Category
-        </h1>
+        <h1 className="page-title mt-4">Add Category</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Create a new category offering
+          Create a new category with a main image
         </p>
       </div>
 
@@ -183,26 +203,25 @@ export function AddCategoryPage() {
                 )}
                 value={description}
                 onChange={(event) =>
-                  setValue("description", event.target.value, { shouldValidate: true })
+                  setValue("description", event.target.value, {
+                    shouldValidate: true,
+                  })
                 }
               />
               {errors.description?.message ? (
                 <p className="flex items-center gap-1 text-xs text-destructive">
-                  <span>⚠</span> {errors.description.message}
+                  {errors.description.message}
                 </p>
               ) : null}
             </div>
           </div>
         </Card>
 
-        <EntityMediaSection
-          title="Category Media"
-          media={media}
-          mainIndex={mainIndex}
-          onAddFiles={addFiles}
-          onRemoveAt={removeAt}
-          onReorderMedia={reorderMedia}
-          error={mediaError ?? undefined}
+        <EntityMainPicSection
+          previewUrl={mainPicPreview}
+          onSelectFile={handleMainPicSelect}
+          onRemove={handleMainPicRemove}
+          error={mainPicError ?? undefined}
         />
 
         {showGeneralError ? (

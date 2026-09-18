@@ -5,7 +5,10 @@ import { useEffect, useState } from "react";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
 import { SubcategoryCard } from "@/modules/subcategories/components/subcategory-card";
 import { useDeleteSubcategory } from "@/modules/subcategories/hooks/use-delete-subcategory";
-import type { Subcategory, SubcategoryListData } from "@/modules/subcategories/types";
+import type {
+  Subcategory,
+  SubcategoryListData,
+} from "@/modules/subcategories/types";
 import { Card } from "@/shared/components/ui/card";
 import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
 import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
@@ -20,10 +23,13 @@ type FeedbackState = {
   message: string;
 };
 
-export function SubcategoriesListClient({ initialData }: SubcategoriesListClientProps) {
-  const { subcategories, pagination } = initialData;
+export function SubcategoriesListClient({
+  initialData,
+}: SubcategoriesListClientProps) {
+  const { subCategories, pagination } = initialData;
   const { canWrite } = usePermissions();
-  const [subcategoryToDelete, setSubcategoryToDelete] = useState<Subcategory | null>(null);
+  const [subcategoryToDelete, setSubcategoryToDelete] =
+    useState<Subcategory | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
   const deleteSubcategory = useDeleteSubcategory({
@@ -38,7 +44,8 @@ export function SubcategoriesListClient({ initialData }: SubcategoriesListClient
       setSubcategoryToDelete(null);
       setFeedback({
         type: "error",
-        message: error.message || "Failed to delete subcategory. Please try again.",
+        message:
+          error.message || "Failed to delete subcategory. Please try again.",
       });
     },
   });
@@ -90,11 +97,14 @@ export function SubcategoriesListClient({ initialData }: SubcategoriesListClient
         />
       ) : null}
 
-      {subcategories.length === 0 ? (
+      {subCategories.length === 0 ? (
         <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-          <p className="text-base font-medium text-foreground">No subcategories yet</p>
+          <p className="text-base font-medium text-foreground">
+            No subcategories yet
+          </p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Create your first subcategory to start building your offerings catalog.
+            Create your first subcategory to start building your offerings
+            catalog.
           </p>
           {canWrite ? (
             <Link
@@ -108,7 +118,7 @@ export function SubcategoriesListClient({ initialData }: SubcategoriesListClient
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {subcategories.map((subcategory) => (
+            {subCategories.map((subcategory) => (
               <SubcategoryCard
                 key={subcategory.id}
                 subcategory={subcategory}

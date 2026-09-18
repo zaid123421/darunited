@@ -1,22 +1,32 @@
 import { clientFetch, clientUpload } from "@/shared/lib/api/client";
 import type { UpdateSubcategoryInput } from "@/modules/subcategories/types";
-import { buildSyncGalleryFormData } from "@/modules/media/lib/build-sync-gallery-form-data";
-
-function buildMainPicFormData(file: File) {
-  const formData = new FormData();
-  formData.append("pic", file);
-  return formData;
-}
 
 function hasInfoChanges(input: UpdateSubcategoryInput) {
   const normalizedDescription = input.description?.trim() || undefined;
-  const normalizedInitialDescription = input.initialDescription?.trim() || undefined;
+  const normalizedInitialDescription =
+    input.initialDescription?.trim() || undefined;
 
   return (
     input.title.trim() !== input.initialTitle.trim() ||
     normalizedDescription !== normalizedInitialDescription ||
     input.categoryId !== input.initialCategoryId
   );
+}
+
+function buildEditFormData(input: UpdateSubcategoryInput) {
+  const formData = new FormData();
+
+  if (hasInfoChanges(input)) {
+    formData.append("title", input.title.trim());
+    formData.append("description", input.description?.trim() || "");
+    formData.append("category_id", String(input.categoryId));
+  }
+
+  if (input.mainPicAction === "upload" && input.mainPicFile) {
+    formData.append("mainPic", input.mainPicFile);
+  }
+
+  return formData;
 }
 
 export const subcategoriesClientApi = {
@@ -29,16 +39,10 @@ export const subcategoriesClientApi = {
       body: JSON.stringify(body),
     }),
 
-  deleteMainPic: (id: number | string) =>
-    clientFetch<null>(`/api/admin/subcategories/delete-main-pic/${id}`, {
-      method: "DELETE",
+  updateWithMedia: (id: number | string, formData: FormData) =>
+    clientUpload<null>(`/api/admin/subcategories/edit/${id}`, formData, {
+      method: "PUT",
     }),
-
-  uploadMainPic: (id: number | string, formData: FormData) =>
-    clientUpload<null>(`/api/admin/subcategories/upload-main-pic/${id}`, formData),
-
-  syncGallery: (id: number | string, formData: FormData) =>
-    clientUpload<null>(`/api/admin/subcategories/sync-gallery/${id}`, formData),
 
   delete: (id: number | string) =>
     clientFetch<null>(`/api/admin/subcategories/${id}`, {
@@ -46,28 +50,26 @@ export const subcategoriesClientApi = {
     }),
 
   updateSubcategory: async (input: UpdateSubcategoryInput) => {
-    if (hasInfoChanges(input)) {
-      await subcategoriesClientApi.update(input.id, {
-        title: input.title.trim(),
-        description: input.description?.trim() || null,
-        categoryId: input.categoryId,
-      });
+    const infoChanged = hasInfoChanges(input);
+    const replacingMainPic =
+      input.mainPicAction === "upload" && Boolean(input.mainPicFile);
+
+    if (!infoChanged && !replacingMainPic) {
+      return;
     }
 
-    if (input.mainPicAction === "delete") {
-      await subcategoriesClientApi.deleteMainPic(input.id);
-    } else if (input.mainPicAction === "upload" && input.mainPicFile) {
-      await subcategoriesClientApi.uploadMainPic(
+    if (replacingMainPic) {
+      await subcategoriesClientApi.updateWithMedia(
         input.id,
-        buildMainPicFormData(input.mainPicFile),
+        buildEditFormData(input),
       );
+      return;
     }
 
-    if (input.galleryChanged) {
-      await subcategoriesClientApi.syncGallery(
-        input.id,
-        buildSyncGalleryFormData(input.galleryItems),
-      );
-    }
+    await subcategoriesClientApi.update(input.id, {
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+      category_id: input.categoryId,
+    });
   },
 };

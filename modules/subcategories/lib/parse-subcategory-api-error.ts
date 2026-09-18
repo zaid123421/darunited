@@ -10,35 +10,27 @@ export type SubcategoryFormFieldErrors = {
 
 const TITLE_ERROR_PATTERNS = [
   /^The title field is required\.?$/i,
+  /^Subcategory already exists\.?$/i,
   /^A subcategory with the same title already exists\.?$/i,
   /^The title has already been taken\.?$/i,
 ];
 
 const CATEGORY_ERROR_PATTERNS = [
   /^The category id field is required\.?$/i,
-  /^The category ?id field is required\.?$/i,
+  /^The category_id field is required\.?$/i,
   /^The selected category id is invalid\.?$/i,
-  /^The selected category ?id is invalid\.?$/i,
+  /^The selected category_id is invalid\.?$/i,
 ];
 
-const MEDIA_ERROR_PATTERNS = [
+const MAIN_PIC_ERROR_PATTERNS = [
+  /^The mainPic field /i,
+  /^The main_pic field /i,
   /^The pic field /i,
-  /^The images(\.\*)? field /i,
-  /^The videos(\.\*)? field /i,
-  /^The new_files\./i,
 ];
 
-const GALLERY_ERROR_PATTERNS = [
-  /^Gallery orders must be unique\.?$/i,
-  /^Each gallery item must /i,
-  /^Duplicate gallery /i,
-  /^No uploaded file was found /i,
-  /^Invalid gallery /i,
-  /^Invalid edited galleries /i,
-  /^Existing subcategory gallery items cannot be removed/i,
-];
-
-export function parseSubcategoryApiError(error: ApiError): SubcategoryFormFieldErrors {
+export function parseSubcategoryApiError(
+  error: ApiError,
+): SubcategoryFormFieldErrors {
   const message = error.message.trim();
 
   if (TITLE_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
@@ -49,16 +41,8 @@ export function parseSubcategoryApiError(error: ApiError): SubcategoryFormFieldE
     return { categoryId: message };
   }
 
-  if (MEDIA_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
-    if (message.toLowerCase().includes("new_files")) {
-      return { media: message };
-    }
-
-    return { mainPic: message.includes("pic") ? message : undefined, media: message };
-  }
-
-  if (GALLERY_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
-    return { media: message };
+  if (MAIN_PIC_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
+    return { mainPic: message, media: message };
   }
 
   if (error.statusCode === 404) {
@@ -69,6 +53,7 @@ export function parseSubcategoryApiError(error: ApiError): SubcategoryFormFieldE
     if (
       message.toLowerCase().includes("title") ||
       message.toLowerCase().includes("same title") ||
+      message.toLowerCase().includes("already exists") ||
       message.toLowerCase().includes("already been taken")
     ) {
       return { title: message };
@@ -79,13 +64,12 @@ export function parseSubcategoryApiError(error: ApiError): SubcategoryFormFieldE
     }
 
     if (
+      message.toLowerCase().includes("mainpic") ||
+      message.toLowerCase().includes("main_pic") ||
       message.toLowerCase().includes("pic") ||
-      message.toLowerCase().includes("image") ||
-      message.toLowerCase().includes("video") ||
-      message.toLowerCase().includes("gallery") ||
-      message.toLowerCase().includes("new_files")
+      message.toLowerCase().includes("image")
     ) {
-      return { media: message };
+      return { mainPic: message, media: message };
     }
   }
 

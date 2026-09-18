@@ -3,27 +3,13 @@ import type { MediaItem } from "@/modules/media/types";
 export interface Category {
   id: number;
   title: string;
-  description: string | null;
+  description?: string | null;
   pic?: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface CategoryMedia {
-  id: number;
-  file_name: string;
-  mime_type: string;
-  size: number;
-  url: string;
-  role: "main" | "gallery" | string;
-  order: number;
-  created_at?: string;
-}
-
-export interface CategoryDetail extends Category {
-  media: CategoryMedia[];
-  pagination?: CategoryPaginationMeta;
-}
+export interface CategoryDetail extends Category {}
 
 export interface CategoryShowData {
   category: CategoryDetail;
@@ -50,12 +36,7 @@ export interface CategoryListParams {
   per_page?: number;
 }
 
-export interface CategoryShowParams {
-  per_page?: number;
-  page?: number;
-}
-
-export type MainPicAction = "none" | "delete" | "upload";
+export type MainPicAction = "none" | "upload";
 
 export interface UpdateCategoryInput {
   id: number;
@@ -65,6 +46,7 @@ export interface UpdateCategoryInput {
   initialDescription?: string;
   mainPicAction: MainPicAction;
   mainPicFile?: File;
-  galleryItems: MediaItem[];
-  galleryChanged: boolean;
+  /** @deprecated Categories no longer support gallery media on the backend. */
+  galleryItems?: MediaItem[];
+  galleryChanged?: boolean;
 }

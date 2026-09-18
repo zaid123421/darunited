@@ -3,13 +3,12 @@ import {
   jsonResponse,
   proxyWithSessionAuth,
 } from "@/shared/lib/api/proxy";
-import type { Subcategory } from "@/modules/subcategories/types";
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
 
-    const { data, status } = await proxyWithSessionAuth<Subcategory>(
+    const { data, status } = await proxyWithSessionAuth<null>(
       "/admin/subcategories/add-subcategory",
       {
         method: "POST",

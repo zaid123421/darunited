@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { SessionBootstrap } from "@/shared/components/auth/session-bootstrap";
 import { NotificationProvider } from "@/modules/notifications/components/notification-provider";
+import { NOTIFICATIONS_ENABLED } from "@/modules/notifications/constants";
 import { Sidebar } from "@/shared/components/layout/sidebar";
 import { Topbar } from "@/shared/components/layout/topbar";
 import { cn } from "@/shared/lib/cn";
@@ -21,13 +22,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const setSidebarOpen = useCallback((next: boolean | ((current: boolean) => boolean)) => {
-    setSidebarOpenState((current) => {
-      const value = typeof next === "function" ? next(current) : next;
-      localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, String(value));
-      return value;
-    });
-  }, []);
+  const setSidebarOpen = useCallback(
+    (next: boolean | ((current: boolean) => boolean)) => {
+      setSidebarOpenState((current) => {
+        const value = typeof next === "function" ? next(current) : next;
+        localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, String(value));
+        return value;
+      });
+    },
+    [],
+  );
 
   function closeSidebarIfMobile() {
     if (window.matchMedia("(max-width: 1023px)").matches) {
@@ -35,9 +39,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     }
   }
 
-  return (
-    <SessionBootstrap>
-    <NotificationProvider>
+  const shell = (
     <div className="flex min-h-screen bg-background">
       {sidebarOpen ? (
         <button
@@ -69,7 +71,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
-    </NotificationProvider>
+  );
+
+  return (
+    <SessionBootstrap>
+      {NOTIFICATIONS_ENABLED ? (
+        <NotificationProvider>{shell}</NotificationProvider>
+      ) : (
+        shell
+      )}
     </SessionBootstrap>
   );
 }

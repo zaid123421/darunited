@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { EntityMediaSection } from "@/modules/media/components/entity-media-section";
+import { EntityMainPicSection } from "@/modules/media/components/entity-main-pic-section";
 import { SUBCATEGORY_FORM_DEFAULTS } from "@/modules/subcategories/constants";
 import { useCreateSubcategory } from "@/modules/subcategories/hooks/use-create-subcategory";
 import { buildSubcategoryFormData } from "@/modules/subcategories/lib/build-subcategory-form-data";
@@ -16,8 +16,10 @@ import {
   type SubcategoryFormValues,
 } from "@/modules/subcategories/schemas/subcategory.schema";
 import type { CategoryOption } from "@/modules/subcategories/types";
-import { useMediaUpload } from "@/modules/media/hooks/use-media-upload";
-import { INVALID_IMAGE_TYPE_MESSAGE, isAllowedImageFile } from "@/modules/media/lib/media-file-validation";
+import {
+  INVALID_IMAGE_TYPE_MESSAGE,
+  isAllowedImageFile,
+} from "@/modules/media/lib/media-file-validation";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
@@ -28,18 +30,31 @@ import { ApiError } from "@/shared/types/global-response";
 
 interface AddSubcategoryPageProps {
   categories: CategoryOption[];
+  defaultCategoryId?: number;
 }
 
-export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
-  const createSubcategory = useCreateSubcategory();
-  const [mediaError, setMediaError] = useState<string | null>(null);
+export function AddSubcategoryPage({
+  categories,
+  defaultCategoryId,
+}: AddSubcategoryPageProps) {
+  const resolvedDefaultCategoryId =
+    defaultCategoryId &&
+    categories.some((category) => category.id === defaultCategoryId)
+      ? defaultCategoryId
+      : undefined;
+
+  const backHref = resolvedDefaultCategoryId
+    ? `/dashboard/categories/${resolvedDefaultCategoryId}`
+    : "/dashboard/subcategories";
+
+  const createSubcategory = useCreateSubcategory({
+    redirectTo: backHref,
+  });
+
+  const [mainPicPreview, setMainPicPreview] = useState<string | null>(null);
+  const [mainPicFile, setMainPicFile] = useState<File | null>(null);
+  const [mainPicError, setMainPicError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
-  const { media, mainIndex, addFiles, removeAt, reorderMedia } = useMediaUpload(
-    [],
-    {
-      onValidationError: setMediaError,
-    },
-  );
 
   const {
     register,
@@ -51,7 +66,10 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
     formState: { errors },
   } = useForm<SubcategoryFormValues, unknown, SubcategoryFormSubmitValues>({
     resolver: zodResolver(subcategoryFormSchema),
-    defaultValues: SUBCATEGORY_FORM_DEFAULTS,
+    defaultValues: {
+      ...SUBCATEGORY_FORM_DEFAULTS,
+      categoryId: resolvedDefaultCategoryId ?? SUBCATEGORY_FORM_DEFAULTS.categoryId,
+    },
   });
 
   const description = watch("description");
@@ -67,17 +85,41 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
     if (errors.title?.type === "server") {
       clearErrors("title");
     }
-    // Only clear server title errors when the user edits the field.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, clearErrors]);
 
   useEffect(() => {
-    if (mediaError) {
-      setMediaError(null);
+    return () => {
+      if (mainPicPreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(mainPicPreview);
+      }
+    };
+  }, [mainPicPreview]);
+
+  const handleMainPicSelect = (file: File) => {
+    if (!isAllowedImageFile(file)) {
+      setMainPicError(INVALID_IMAGE_TYPE_MESSAGE);
+      return;
     }
-    // Only clear media errors when the user changes uploaded files.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [media]);
+
+    if (mainPicPreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(mainPicPreview);
+    }
+
+    setMainPicFile(file);
+    setMainPicPreview(URL.createObjectURL(file));
+    setMainPicError(null);
+  };
+
+  const handleMainPicRemove = () => {
+    if (mainPicPreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(mainPicPreview);
+    }
+
+    setMainPicPreview(null);
+    setMainPicFile(null);
+    setMainPicError(null);
+  };
 
   const handleApiError = (error: unknown) => {
     if (!(error instanceof ApiError)) {
@@ -95,8 +137,8 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
       setError("categoryId", { type: "server", message: parsed.categoryId });
     }
 
-    if (parsed.media) {
-      setMediaError(parsed.media);
+    if (parsed.mainPic || parsed.media) {
+      setMainPicError(parsed.mainPic ?? parsed.media ?? null);
     }
 
     if (parsed.general) {
@@ -105,17 +147,19 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
   };
 
   const onSubmit = (values: SubcategoryFormSubmitValues) => {
-    setMediaError(null);
+    setMainPicError(null);
     setGeneralError(null);
     clearErrors("title");
+    clearErrors("categoryId");
     createSubcategory.reset();
 
-    const hasInvalidImage = media.some(
-      (item) => item.kind === "image" && item.file && !isAllowedImageFile(item.file),
-    );
+    if (!mainPicFile) {
+      setMainPicError("A main image is required.");
+      return;
+    }
 
-    if (hasInvalidImage) {
-      setMediaError(INVALID_IMAGE_TYPE_MESSAGE);
+    if (!isAllowedImageFile(mainPicFile)) {
+      setMainPicError(INVALID_IMAGE_TYPE_MESSAGE);
       return;
     }
 
@@ -123,8 +167,7 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
       title: values.title,
       description: values.description,
       categoryId: values.categoryId,
-      media,
-      mainIndex,
+      mainPicFile,
     });
 
     createSubcategory.mutate(formData, {
@@ -134,24 +177,22 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
 
   const titleError = errors.title?.message;
   const showGeneralError =
-    generalError && !titleError && !mediaError && !errors.categoryId;
+    generalError && !titleError && !mainPicError && !errors.categoryId;
 
   return (
     <div className="flex min-h-full w-full flex-col pb-24 sm:pb-28">
       <div className="mb-6 sm:mb-8">
         <Link
-          href="/dashboard/subcategories"
+          href={backHref}
           className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
-          Back to Subcategories
+          {resolvedDefaultCategoryId ? "Back to Category" : "Back to Subcategories"}
         </Link>
 
-        <h1 className="page-title mt-4">
-          Add Subcategory
-        </h1>
+        <h1 className="page-title mt-4">Add Subcategory</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Create a new subcategory offering
+          Create a new subcategory with a main image
         </p>
       </div>
 
@@ -210,28 +251,27 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
                   errors.description &&
                     "border-destructive focus-visible:border-destructive focus-visible:ring-destructive",
                 )}
-                value={description}
+                value={description ?? ""}
                 onChange={(event) =>
-                  setValue("description", event.target.value, { shouldValidate: true })
+                  setValue("description", event.target.value, {
+                    shouldValidate: true,
+                  })
                 }
               />
               {errors.description?.message ? (
                 <p className="flex items-center gap-1 text-xs text-destructive">
-                  <span>⚠</span> {errors.description.message}
+                  {errors.description.message}
                 </p>
               ) : null}
             </div>
           </div>
         </Card>
 
-        <EntityMediaSection
-          title="Subcategory Media"
-          media={media}
-          mainIndex={mainIndex}
-          onAddFiles={addFiles}
-          onRemoveAt={removeAt}
-          onReorderMedia={reorderMedia}
-          error={mediaError ?? undefined}
+        <EntityMainPicSection
+          previewUrl={mainPicPreview}
+          onSelectFile={handleMainPicSelect}
+          onRemove={handleMainPicRemove}
+          error={mainPicError ?? undefined}
         />
 
         {showGeneralError ? (
@@ -244,7 +284,7 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/40 backdrop-blur-md lg:left-[260px]">
         <div className="flex w-full flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-4">
           <Link
-            href="/dashboard/subcategories"
+            href={backHref}
             className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
           >
             Cancel changes
@@ -252,7 +292,7 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
 
           <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
             <Link
-              href="/dashboard/subcategories"
+              href={backHref}
               className="text-sm text-muted-foreground transition-colors hover:text-foreground sm:hidden"
             >
               Cancel
@@ -267,7 +307,9 @@ export function AddSubcategoryPage({ categories }: AddSubcategoryPageProps) {
                   createSubcategory.isPending && "opacity-70",
                 )}
               >
-                {createSubcategory.isPending ? "Publishing…" : "Publish Subcategory"}
+                {createSubcategory.isPending
+                  ? "Publishing…"
+                  : "Publish Subcategory"}
               </Button>
             </div>
           </div>

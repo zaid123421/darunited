@@ -1,5 +1,9 @@
 import { parseBackendDateTime } from "@/shared/lib/auth/datetime";
 import type {
+  RecoveryRequestCodeData,
+  RecoveryRequestCodePublicData,
+  RecoveryVerifyCodeData,
+  RecoveryVerifyCodePublicData,
   RefreshTokenData,
   RefreshTokenPublicData,
   RequestCodeData,
@@ -57,6 +61,33 @@ export function sanitizeRefreshResponse(
     data: {
       access_expires_at: response.data.access_expires_at,
       refresh_expires_at: response.data.refresh_expires_at,
+    },
+  };
+}
+
+export function sanitizeRecoveryRequestCodeResponse(
+  response: GlobalResponse<RecoveryRequestCodeData>,
+): GlobalResponse<RecoveryRequestCodePublicData> {
+  const {
+    recovery_otp_access_token: _recoveryOtpAccessToken,
+    ...publicData
+  } = response.data;
+
+  return {
+    status_code: response.status_code,
+    message: response.message,
+    data: publicData,
+  };
+}
+
+export function sanitizeRecoveryVerifyCodeResponse(
+  response: GlobalResponse<RecoveryVerifyCodeData>,
+): GlobalResponse<RecoveryVerifyCodePublicData> {
+  return {
+    status_code: response.status_code,
+    message: response.message,
+    data: {
+      expires_at: response.data.expires_at,
     },
   };
 }

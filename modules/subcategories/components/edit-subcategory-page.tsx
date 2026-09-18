@@ -3,15 +3,13 @@
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronLeft } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { EntityMainPicSection } from "@/modules/media/components/entity-main-pic-section";
-import { EntityMediaSection } from "@/modules/media/components/entity-media-section";
-import { useGalleryEdit } from "@/modules/media/hooks/use-gallery-edit";
 import { useUpdateSubcategory } from "@/modules/subcategories/hooks/use-update-subcategory";
 import {
-  getGalleryFromSubcategory,
-  getMainPicFromSubcategory,
+  getSubcategoryCategoryId,
+  getSubcategoryPicUrl,
 } from "@/modules/subcategories/lib/subcategory-media-mappers";
 import { parseSubcategoryApiError } from "@/modules/subcategories/lib/parse-subcategory-api-error";
 import {
@@ -46,11 +44,8 @@ export function EditSubcategoryPage({
   subcategory,
   categories,
 }: EditSubcategoryPageProps) {
-  const initialMainPic = getMainPicFromSubcategory(subcategory);
-  const initialGallery = useMemo(
-    () => getGalleryFromSubcategory(subcategory),
-    [subcategory],
-  );
+  const initialCategoryId = getSubcategoryCategoryId(subcategory) ?? 0;
+  const initialPicUrl = getSubcategoryPicUrl(subcategory);
 
   const updateSubcategory = useUpdateSubcategory({
     onSuccess: () => {
@@ -59,22 +54,11 @@ export function EditSubcategoryPage({
     },
   });
 
-  const {
-    media: galleryMedia,
-    galleryChanged,
-    addFiles: addGalleryFiles,
-    removeAt: removeGalleryAt,
-    reorderMedia: reorderGallery,
-    resetGallery,
-  } = useGalleryEdit(initialGallery);
-
   const [mainPicPreview, setMainPicPreview] = useState<string | null>(
-    initialMainPic?.url ?? null,
+    initialPicUrl,
   );
   const [mainPicFile, setMainPicFile] = useState<File | null>(null);
-  const [mainPicRemoved, setMainPicRemoved] = useState(false);
   const [mainPicError, setMainPicError] = useState<string | null>(null);
-  const [mediaError, setMediaError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -91,7 +75,7 @@ export function EditSubcategoryPage({
     defaultValues: {
       title: subcategory.title,
       description: subcategory.description ?? "",
-      categoryId: subcategory.categoryId,
+      categoryId: initialCategoryId,
     },
   });
 
@@ -105,14 +89,11 @@ export function EditSubcategoryPage({
   }));
 
   useEffect(() => {
-    resetGallery(initialGallery);
-    setMainPicPreview(initialMainPic?.url ?? null);
+    setMainPicPreview(initialPicUrl);
     setMainPicFile(null);
-    setMainPicRemoved(false);
     setMainPicError(null);
-    setMediaError(null);
     setGeneralError(null);
-  }, [initialGallery, initialMainPic?.url, resetGallery, subcategory.id]);
+  }, [initialPicUrl, subcategory.id]);
 
   useEffect(() => {
     if (errors.title?.type === "server") {
@@ -121,37 +102,18 @@ export function EditSubcategoryPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, clearErrors]);
 
-  useEffect(() => {
-    if (mediaError) {
-      setMediaError(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [galleryMedia]);
-
-  useEffect(() => {
-    if (mainPicError) {
-      setMainPicError(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mainPicPreview, mainPicFile, mainPicRemoved]);
-
-  const hasMainPicChanges =
-    Boolean(mainPicFile) || (Boolean(initialMainPic) && mainPicRemoved && !mainPicFile);
+  const hasMainPicChanges = Boolean(mainPicFile);
 
   const hasInfoChanges =
     title.trim() !== subcategory.title.trim() ||
     (description?.trim() || "") !== (subcategory.description?.trim() || "") ||
-    Number(categoryId) !== subcategory.categoryId;
+    Number(categoryId) !== initialCategoryId;
 
-  const hasChanges = hasInfoChanges || hasMainPicChanges || galleryChanged;
+  const hasChanges = hasInfoChanges || hasMainPicChanges;
 
   const resolveMainPicAction = (): MainPicAction => {
     if (mainPicFile) {
       return "upload";
-    }
-
-    if (initialMainPic && mainPicRemoved) {
-      return "delete";
     }
 
     return "none";
@@ -169,7 +131,6 @@ export function EditSubcategoryPage({
 
     setMainPicFile(file);
     setMainPicPreview(URL.createObjectURL(file));
-    setMainPicRemoved(false);
     setMainPicError(null);
     setSuccessMessage(null);
   };
@@ -179,21 +140,14 @@ export function EditSubcategoryPage({
       URL.revokeObjectURL(mainPicPreview);
     }
 
-    setMainPicPreview(null);
+    // Backend cannot delete main pic without replacement — restore existing.
+    setMainPicPreview(initialPicUrl);
     setMainPicFile(null);
-    setMainPicRemoved(true);
-    setMainPicError(null);
-    setSuccessMessage(null);
-  };
-
-  const handleGalleryAddFiles = (files: FileList) => {
-    const result = addGalleryFiles(files);
-
-    if (result.invalidImageMessage) {
-      setMediaError(result.invalidImageMessage);
-      return;
-    }
-
+    setMainPicError(
+      initialPicUrl
+        ? "To change the image, upload a replacement. Deleting without replace is not supported."
+        : "A main image is required.",
+    );
     setSuccessMessage(null);
   };
 
@@ -213,12 +167,8 @@ export function EditSubcategoryPage({
       setError("categoryId", { type: "server", message: parsed.categoryId });
     }
 
-    if (parsed.mainPic) {
-      setMainPicError(parsed.mainPic);
-    }
-
-    if (parsed.media) {
-      setMediaError(parsed.media);
+    if (parsed.mainPic || parsed.media) {
+      setMainPicError(parsed.mainPic ?? parsed.media ?? null);
     }
 
     if (parsed.general) {
@@ -227,7 +177,6 @@ export function EditSubcategoryPage({
   };
 
   const onSubmit = (values: SubcategoryFormSubmitValues) => {
-    setMediaError(null);
     setMainPicError(null);
     setGeneralError(null);
     setSuccessMessage(null);
@@ -239,15 +188,6 @@ export function EditSubcategoryPage({
       return;
     }
 
-    const hasInvalidGalleryImage = galleryMedia.some(
-      (item) => item.kind === "image" && item.file && !isAllowedImageFile(item.file),
-    );
-
-    if (hasInvalidGalleryImage) {
-      setMediaError(INVALID_IMAGE_TYPE_MESSAGE);
-      return;
-    }
-
     updateSubcategory.mutate(
       {
         id: subcategory.id,
@@ -256,11 +196,9 @@ export function EditSubcategoryPage({
         categoryId: values.categoryId,
         initialTitle: subcategory.title,
         initialDescription: subcategory.description ?? undefined,
-        initialCategoryId: subcategory.categoryId,
+        initialCategoryId,
         mainPicAction: resolveMainPicAction(),
         mainPicFile: mainPicFile ?? undefined,
-        galleryItems: galleryMedia,
-        galleryChanged,
       },
       {
         onError: handleApiError,
@@ -270,7 +208,7 @@ export function EditSubcategoryPage({
 
   const titleError = errors.title?.message;
   const showGeneralError =
-    generalError && !titleError && !mediaError && !mainPicError && !errors.categoryId;
+    generalError && !titleError && !mainPicError && !errors.categoryId;
 
   return (
     <div className="flex min-h-full w-full flex-col pb-24 sm:pb-28">
@@ -285,7 +223,7 @@ export function EditSubcategoryPage({
 
         <h1 className="page-title mt-4">Edit Subcategory</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Update subcategory details and media
+          Update subcategory details and main image
         </p>
       </div>
 
@@ -356,12 +294,14 @@ export function EditSubcategoryPage({
                 )}
                 value={description ?? ""}
                 onChange={(event) =>
-                  setValue("description", event.target.value, { shouldValidate: true })
+                  setValue("description", event.target.value, {
+                    shouldValidate: true,
+                  })
                 }
               />
               {errors.description?.message ? (
                 <p className="flex items-center gap-1 text-xs text-destructive">
-                  <span>⚠</span> {errors.description.message}
+                  {errors.description.message}
                 </p>
               ) : null}
             </div>
@@ -373,19 +313,6 @@ export function EditSubcategoryPage({
           onSelectFile={handleMainPicSelect}
           onRemove={handleMainPicRemove}
           error={mainPicError ?? undefined}
-        />
-
-        <EntityMediaSection
-          title="Gallery Media"
-          media={galleryMedia}
-          mainIndex={-1}
-          onAddFiles={handleGalleryAddFiles}
-          onRemoveAt={removeGalleryAt}
-          onReorderMedia={reorderGallery}
-          canRemoveItem={(item) => !item.id}
-          error={mediaError ?? undefined}
-          showMainBadge={false}
-          tipText="Drag to reorder gallery items. You can add new media, but existing items cannot be removed."
         />
 
         {showGeneralError ? (

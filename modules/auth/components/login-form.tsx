@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Mail } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -25,6 +26,7 @@ import { cn } from "@/shared/lib/cn";
 export function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = getSafeDashboardRedirect(searchParams.get("redirect"));
+  const recovered = searchParams.get("recovered") === "1";
   const { requestCode } = useAuth({ redirect });
   const usesFixedTestToken = Boolean(env.TURNSTILE_TEST_TOKEN);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(
@@ -83,6 +85,12 @@ export function LoginForm() {
           Enter your work email and we&apos;ll send a one-time verification code.
         </p>
       </div>
+
+      {recovered ? (
+        <div className="mb-5 rounded-xl border border-primary/25 bg-muted px-4 py-3 text-sm text-foreground">
+          Primary email updated. Sign in with your new email to continue.
+        </div>
+      ) : null}
 
       <form
         onSubmit={handleSubmit(onSubmit)}
@@ -173,7 +181,17 @@ export function LoginForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-xs leading-relaxed text-muted-foreground/70">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        Lost access to your email?{" "}
+        <Link
+          href="/recover"
+          className="font-medium text-primary transition-colors hover:text-foreground"
+        >
+          Recover account
+        </Link>
+      </p>
+
+      <p className="mt-3 text-center text-xs leading-relaxed text-muted-foreground/70">
         Access is limited to authorized DARUNITED staff.
       </p>
     </div>

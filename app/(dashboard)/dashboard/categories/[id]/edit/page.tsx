@@ -14,7 +14,7 @@ export default async function EditCategoryRoutePage({
   const { id } = await params;
 
   try {
-    const response = await categoriesApi.getById(id, { per_page: 100 });
+    const response = await categoriesApi.getById(id);
     return <EditCategoryPage category={response.data.category} />;
   } catch (error) {
     if (error instanceof ApiError && error.statusCode === 404) {
@@ -31,7 +31,8 @@ export default async function EditCategoryRoutePage({
         </div>
         <Card className="border-destructive/30 bg-destructive/5">
           <p className="text-sm text-destructive">
-            Unable to load this category. Please refresh the page or try again later.
+            Unable to load this category. Please refresh the page or try again
+            later.
           </p>
         </Card>
       </div>

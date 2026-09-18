@@ -3,17 +3,24 @@
 import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
+import { getSubcategoryCategoryTitle } from "@/modules/subcategories/lib/subcategory-media-mappers";
 import type { Subcategory } from "@/modules/subcategories/types";
 import { cn } from "@/shared/lib/cn";
 
 interface SubcategoryCardProps {
   subcategory: Subcategory;
   onDelete: () => void;
+  showCategory?: boolean;
 }
 
-export function SubcategoryCard({ subcategory, onDelete }: SubcategoryCardProps) {
+export function SubcategoryCard({
+  subcategory,
+  onDelete,
+  showCategory = true,
+}: SubcategoryCardProps) {
   const { canWrite } = usePermissions();
   const hasImage = Boolean(subcategory.pic);
+  const categoryTitle = getSubcategoryCategoryTitle(subcategory);
 
   return (
     <article className="group card-lift overflow-hidden rounded-2xl border border-border bg-card">
@@ -40,6 +47,11 @@ export function SubcategoryCard({ subcategory, onDelete }: SubcategoryCardProps)
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
 
           <div className="absolute inset-x-0 bottom-0 p-4">
+            {showCategory && categoryTitle ? (
+              <p className="mb-1 line-clamp-1 text-xs font-medium text-white/75">
+                {categoryTitle}
+              </p>
+            ) : null}
             <h3 className="line-clamp-2 text-base font-semibold leading-snug text-white">
               {subcategory.title}
             </h3>

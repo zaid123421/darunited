@@ -1,21 +1,30 @@
 import { clientFetch, clientUpload } from "@/shared/lib/api/client";
 import type { UpdateCategoryInput } from "@/modules/categories/types";
-import { buildSyncGalleryFormData } from "@/modules/media/lib/build-sync-gallery-form-data";
-
-function buildMainPicFormData(file: File) {
-  const formData = new FormData();
-  formData.append("pic", file);
-  return formData;
-}
 
 function hasInfoChanges(input: UpdateCategoryInput) {
   const normalizedDescription = input.description?.trim() || undefined;
-  const normalizedInitialDescription = input.initialDescription?.trim() || undefined;
+  const normalizedInitialDescription =
+    input.initialDescription?.trim() || undefined;
 
   return (
     input.title.trim() !== input.initialTitle.trim() ||
     normalizedDescription !== normalizedInitialDescription
   );
+}
+
+function buildEditFormData(input: UpdateCategoryInput) {
+  const formData = new FormData();
+
+  if (hasInfoChanges(input)) {
+    formData.append("title", input.title.trim());
+    formData.append("description", input.description?.trim() || "");
+  }
+
+  if (input.mainPicAction === "upload" && input.mainPicFile) {
+    formData.append("main_pic", input.mainPicFile);
+  }
+
+  return formData;
 }
 
 export const categoriesClientApi = {
@@ -28,16 +37,10 @@ export const categoriesClientApi = {
       body: JSON.stringify(body),
     }),
 
-  deleteMainPic: (id: number | string) =>
-    clientFetch<null>(`/api/admin/categories/delete-main-pic/${id}`, {
-      method: "DELETE",
+  updateWithMedia: (id: number | string, formData: FormData) =>
+    clientUpload<null>(`/api/admin/categories/edit/${id}`, formData, {
+      method: "PUT",
     }),
-
-  uploadMainPic: (id: number | string, formData: FormData) =>
-    clientUpload<null>(`/api/admin/categories/upload-main-pic/${id}`, formData),
-
-  syncGallery: (id: number | string, formData: FormData) =>
-    clientUpload<null>(`/api/admin/categories/sync-gallery/${id}`, formData),
 
   delete: (id: number | string) =>
     clientFetch<null>(`/api/admin/categories/${id}`, {
@@ -45,27 +48,25 @@ export const categoriesClientApi = {
     }),
 
   updateCategory: async (input: UpdateCategoryInput) => {
-    if (hasInfoChanges(input)) {
-      await categoriesClientApi.update(input.id, {
-        title: input.title.trim(),
-        description: input.description?.trim() || null,
-      });
+    const infoChanged = hasInfoChanges(input);
+    const replacingMainPic =
+      input.mainPicAction === "upload" && Boolean(input.mainPicFile);
+
+    if (!infoChanged && !replacingMainPic) {
+      return;
     }
 
-    if (input.mainPicAction === "delete") {
-      await categoriesClientApi.deleteMainPic(input.id);
-    } else if (input.mainPicAction === "upload" && input.mainPicFile) {
-      await categoriesClientApi.uploadMainPic(
+    if (replacingMainPic) {
+      await categoriesClientApi.updateWithMedia(
         input.id,
-        buildMainPicFormData(input.mainPicFile),
+        buildEditFormData(input),
       );
+      return;
     }
 
-    if (input.galleryChanged) {
-      await categoriesClientApi.syncGallery(
-        input.id,
-        buildSyncGalleryFormData(input.galleryItems),
-      );
-    }
+    await categoriesClientApi.update(input.id, {
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+    });
   },
 };

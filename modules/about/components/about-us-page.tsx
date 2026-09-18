@@ -307,7 +307,7 @@ export function AboutUsPage({ sections }: AboutUsPageProps) {
                     />
                     {errors.sections?.[index]?.script?.message ? (
                       <p className="flex items-center gap-1 text-xs text-destructive">
-                        <span>⚠</span> {errors.sections[index]?.script?.message}
+                        {errors.sections[index]?.script?.message}
                       </p>
                     ) : null}
                   </div>

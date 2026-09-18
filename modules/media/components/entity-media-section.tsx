@@ -32,7 +32,7 @@ export function EntityMediaSection({
   canRemoveItem = () => true,
   error,
   showMainBadge = true,
-  tipText = "Drag to reorder. Numbers show the display order. The first image is always the main thumbnail â€” videos cannot be used as the main image.",
+  tipText = "Drag to reorder. Numbers show the display order. The first image is always the main thumbnail - videos cannot be used as the main image.",
   title = "Media",
 }: EntityMediaSectionProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -83,7 +83,7 @@ export function EntityMediaSection({
           Click or drag photos and videos
         </p>
         <p className="mt-1 text-[11px] text-muted-foreground sm:mt-1.5 sm:text-xs">
-          {ALLOWED_IMAGE_TYPES_LABEL} for images â€” MP4, MOV for videos
+          {ALLOWED_IMAGE_TYPES_LABEL} for images - MP4, MOV for videos
         </p>
         <input
           type="file"
@@ -176,7 +176,7 @@ export function EntityMediaSection({
 
       {error ? (
         <p className="mt-3 flex items-center gap-1 text-xs text-destructive sm:text-sm">
-          <span>âڑ </span> {error}
+          {error}
         </p>
       ) : null}
 

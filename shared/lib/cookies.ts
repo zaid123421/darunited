@@ -84,12 +84,24 @@ export async function getSessionCookies() {
     env.COOKIE_NAMES.REFRESH,
     cookieStore.get(env.COOKIE_NAMES.REFRESH)?.value,
   );
+  const recoveryOtpAccessToken = deleteExpiredTokenCookie(
+    cookieStore,
+    env.COOKIE_NAMES.RECOVERY_OTP_ACCESS,
+    cookieStore.get(env.COOKIE_NAMES.RECOVERY_OTP_ACCESS)?.value,
+  );
+  const recoveryAccessToken = deleteExpiredTokenCookie(
+    cookieStore,
+    env.COOKIE_NAMES.RECOVERY_ACCESS,
+    cookieStore.get(env.COOKIE_NAMES.RECOVERY_ACCESS)?.value,
+  );
   const role = normalizeRole(cookieStore.get(env.COOKIE_NAMES.ROLE)?.value);
 
   return {
     otpAccessToken,
     accessToken,
     refreshToken,
+    recoveryOtpAccessToken,
+    recoveryAccessToken,
     role,
   };
 }
@@ -163,4 +175,49 @@ export async function clearSessionCookies() {
   cookieStore.delete(env.COOKIE_NAMES.ACCESS);
   cookieStore.delete(env.COOKIE_NAMES.REFRESH);
   cookieStore.delete(env.COOKIE_NAMES.ROLE);
+}
+
+export async function setRecoveryOtpAccessCookie(
+  token: string,
+  expiresAt?: string,
+) {
+  const cookieStore = await cookies();
+  const maxAge = resolveOtpCookieMaxAge(token, expiresAt);
+
+  if (maxAge <= 0) {
+    cookieStore.delete(env.COOKIE_NAMES.RECOVERY_OTP_ACCESS);
+    return;
+  }
+
+  cookieStore.set(
+    env.COOKIE_NAMES.RECOVERY_OTP_ACCESS,
+    token,
+    baseCookieOptions(maxAge),
+  );
+}
+
+export async function setRecoveryAccessCookie(
+  token: string,
+  expiresAt?: string,
+) {
+  const cookieStore = await cookies();
+  const maxAge = resolveOtpCookieMaxAge(token, expiresAt);
+
+  if (maxAge <= 0) {
+    cookieStore.delete(env.COOKIE_NAMES.RECOVERY_ACCESS);
+    return;
+  }
+
+  cookieStore.set(
+    env.COOKIE_NAMES.RECOVERY_ACCESS,
+    token,
+    baseCookieOptions(maxAge),
+  );
+  cookieStore.delete(env.COOKIE_NAMES.RECOVERY_OTP_ACCESS);
+}
+
+export async function clearRecoveryCookies() {
+  const cookieStore = await cookies();
+  cookieStore.delete(env.COOKIE_NAMES.RECOVERY_OTP_ACCESS);
+  cookieStore.delete(env.COOKIE_NAMES.RECOVERY_ACCESS);
 }

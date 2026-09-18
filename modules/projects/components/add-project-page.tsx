@@ -349,7 +349,7 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
               />
               {errors.description?.message ? (
                 <p className="flex items-center gap-1 text-xs text-destructive">
-                  <span>⚠</span> {errors.description.message}
+                  {errors.description.message}
                 </p>
               ) : null}
             </div>

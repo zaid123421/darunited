@@ -2,7 +2,20 @@ import { AddSubcategoryPage } from "@/modules/subcategories/components/add-subca
 import { categoriesApi } from "@/modules/categories/api/categories.api";
 import { Card } from "@/shared/components/ui/card";
 
-export default async function DashboardAddSubcategoryPage() {
+interface DashboardAddSubcategoryPageProps {
+  searchParams: Promise<{ categoryId?: string }>;
+}
+
+export default async function DashboardAddSubcategoryPage({
+  searchParams,
+}: DashboardAddSubcategoryPageProps) {
+  const { categoryId: categoryIdParam } = await searchParams;
+  const defaultCategoryId = Number(categoryIdParam);
+  const resolvedDefaultCategoryId =
+    Number.isFinite(defaultCategoryId) && defaultCategoryId > 0
+      ? defaultCategoryId
+      : undefined;
+
   try {
     const response = await categoriesApi.list({ per_page: 100 });
     const categories = response.data.categories.map((category) => ({
@@ -10,7 +23,12 @@ export default async function DashboardAddSubcategoryPage() {
       title: category.title,
     }));
 
-    return <AddSubcategoryPage categories={categories} />;
+    return (
+      <AddSubcategoryPage
+        categories={categories}
+        defaultCategoryId={resolvedDefaultCategoryId}
+      />
+    );
   } catch {
     return (
       <div className="flex flex-col gap-6">

@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NotificationBell } from "@/modules/notifications/components/notification-bell";
+import { NOTIFICATIONS_ENABLED } from "@/modules/notifications/constants";
 import { useCurrentUser } from "@/modules/auth/hooks/use-current-user";
 import { getUserInitials } from "@/shared/lib/auth/user";
 
@@ -30,7 +31,7 @@ export function Topbar({ sidebarOpen = true, onMenuClick }: TopbarProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-4">
-        <NotificationBell />
+        {NOTIFICATIONS_ENABLED ? <NotificationBell /> : null}
 
         <div className="hidden h-8 w-px bg-border sm:block" />
 

@@ -16,7 +16,7 @@ export default async function EditSubcategoryRoutePage({
 
   try {
     const [subcategoryResponse, categoriesResponse] = await Promise.all([
-      subcategoriesApi.getById(id, { per_page: 100 }),
+      subcategoriesApi.getById(id),
       categoriesApi.list({ per_page: 100 }),
     ]);
 
@@ -27,7 +27,7 @@ export default async function EditSubcategoryRoutePage({
 
     return (
       <EditSubcategoryPage
-        subcategory={subcategoryResponse.data.subcategory}
+        subcategory={subcategoryResponse.data.subCategory}
         categories={categories}
       />
     );
@@ -46,7 +46,8 @@ export default async function EditSubcategoryRoutePage({
         </div>
         <Card className="border-destructive/30 bg-destructive/5">
           <p className="text-sm text-destructive">
-            Unable to load this subcategory. Please refresh the page or try again later.
+            Unable to load this subcategory. Please refresh the page or try again
+            later.
           </p>
         </Card>
       </div>

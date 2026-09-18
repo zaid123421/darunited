@@ -216,7 +216,7 @@ export function Select({
 
       {error ? (
         <p className="flex items-center gap-1 text-xs text-destructive">
-          <span>⚠</span> {error}
+          {error}
         </p>
       ) : null}
     </div>

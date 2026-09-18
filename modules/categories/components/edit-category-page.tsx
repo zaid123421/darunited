@@ -3,16 +3,11 @@
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronLeft } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { EntityMainPicSection } from "@/modules/media/components/entity-main-pic-section";
-import { EntityMediaSection } from "@/modules/media/components/entity-media-section";
-import { useGalleryEdit } from "@/modules/media/hooks/use-gallery-edit";
 import { useUpdateCategory } from "@/modules/categories/hooks/use-update-category";
-import {
-  getGalleryFromCategory,
-  getMainPicFromCategory,
-} from "@/modules/categories/lib/category-media-mappers";
+import { getCategoryPicUrl } from "@/modules/categories/lib/category-media-mappers";
 import { parseCategoryApiError } from "@/modules/categories/lib/parse-category-api-error";
 import {
   categoryFormSchema,
@@ -23,7 +18,7 @@ import {
   INVALID_IMAGE_TYPE_MESSAGE,
   isAllowedImageFile,
 } from "@/modules/media/lib/media-file-validation";
-import type { MainPicAction, CategoryDetail } from "@/modules/categories/types";
+import type { CategoryDetail, MainPicAction } from "@/modules/categories/types";
 import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardTitle } from "@/shared/components/ui/card";
@@ -37,8 +32,7 @@ interface EditCategoryPageProps {
 }
 
 export function EditCategoryPage({ category }: EditCategoryPageProps) {
-  const initialMainPic = getMainPicFromCategory(category);
-  const initialGallery = useMemo(() => getGalleryFromCategory(category), [category]);
+  const initialPicUrl = getCategoryPicUrl(category);
 
   const updateCategory = useUpdateCategory({
     onSuccess: () => {
@@ -47,22 +41,11 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
     },
   });
 
-  const {
-    media: galleryMedia,
-    galleryChanged,
-    addFiles: addGalleryFiles,
-    removeAt: removeGalleryAt,
-    reorderMedia: reorderGallery,
-    resetGallery,
-  } = useGalleryEdit(initialGallery);
-
   const [mainPicPreview, setMainPicPreview] = useState<string | null>(
-    initialMainPic?.url ?? null,
+    initialPicUrl,
   );
   const [mainPicFile, setMainPicFile] = useState<File | null>(null);
-  const [mainPicRemoved, setMainPicRemoved] = useState(false);
   const [mainPicError, setMainPicError] = useState<string | null>(null);
-  const [mediaError, setMediaError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -86,14 +69,11 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
   const title = watch("title");
 
   useEffect(() => {
-    resetGallery(initialGallery);
-    setMainPicPreview(initialMainPic?.url ?? null);
+    setMainPicPreview(initialPicUrl);
     setMainPicFile(null);
-    setMainPicRemoved(false);
     setMainPicError(null);
-    setMediaError(null);
     setGeneralError(null);
-  }, [initialGallery, initialMainPic?.url, resetGallery, category.id]);
+  }, [initialPicUrl, category.id]);
 
   useEffect(() => {
     if (errors.title?.type === "server") {
@@ -102,36 +82,17 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, clearErrors]);
 
-  useEffect(() => {
-    if (mediaError) {
-      setMediaError(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [galleryMedia]);
-
-  useEffect(() => {
-    if (mainPicError) {
-      setMainPicError(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mainPicPreview, mainPicFile, mainPicRemoved]);
-
-  const hasMainPicChanges =
-    Boolean(mainPicFile) || (Boolean(initialMainPic) && mainPicRemoved && !mainPicFile);
+  const hasMainPicChanges = Boolean(mainPicFile);
 
   const hasInfoChanges =
     title.trim() !== category.title.trim() ||
     (description?.trim() || "") !== (category.description?.trim() || "");
 
-  const hasChanges = hasInfoChanges || hasMainPicChanges || galleryChanged;
+  const hasChanges = hasInfoChanges || hasMainPicChanges;
 
   const resolveMainPicAction = (): MainPicAction => {
     if (mainPicFile) {
       return "upload";
-    }
-
-    if (initialMainPic && mainPicRemoved) {
-      return "delete";
     }
 
     return "none";
@@ -149,7 +110,6 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
 
     setMainPicFile(file);
     setMainPicPreview(URL.createObjectURL(file));
-    setMainPicRemoved(false);
     setMainPicError(null);
     setSuccessMessage(null);
   };
@@ -159,21 +119,14 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
       URL.revokeObjectURL(mainPicPreview);
     }
 
-    setMainPicPreview(null);
+    // Backend cannot delete main pic without replacement — restore existing.
+    setMainPicPreview(initialPicUrl);
     setMainPicFile(null);
-    setMainPicRemoved(true);
-    setMainPicError(null);
-    setSuccessMessage(null);
-  };
-
-  const handleGalleryAddFiles = (files: FileList) => {
-    const result = addGalleryFiles(files);
-
-    if (result.invalidImageMessage) {
-      setMediaError(result.invalidImageMessage);
-      return;
-    }
-
+    setMainPicError(
+      initialPicUrl
+        ? "To change the image, upload a replacement. Deleting without replace is not supported."
+        : "A main image is required.",
+    );
     setSuccessMessage(null);
   };
 
@@ -189,12 +142,8 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
       setError("title", { type: "server", message: parsed.title });
     }
 
-    if (parsed.mainPic) {
-      setMainPicError(parsed.mainPic);
-    }
-
-    if (parsed.media) {
-      setMediaError(parsed.media);
+    if (parsed.mainPic || parsed.media) {
+      setMainPicError(parsed.mainPic ?? parsed.media ?? null);
     }
 
     if (parsed.general) {
@@ -203,7 +152,6 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
   };
 
   const onSubmit = (values: CategoryFormSubmitValues) => {
-    setMediaError(null);
     setMainPicError(null);
     setGeneralError(null);
     setSuccessMessage(null);
@@ -211,15 +159,6 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
 
     if (!hasChanges) {
       setGeneralError("No changes to save.");
-      return;
-    }
-
-    const hasInvalidGalleryImage = galleryMedia.some(
-      (item) => item.kind === "image" && item.file && !isAllowedImageFile(item.file),
-    );
-
-    if (hasInvalidGalleryImage) {
-      setMediaError(INVALID_IMAGE_TYPE_MESSAGE);
       return;
     }
 
@@ -232,8 +171,6 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
         initialDescription: category.description ?? undefined,
         mainPicAction: resolveMainPicAction(),
         mainPicFile: mainPicFile ?? undefined,
-        galleryItems: galleryMedia,
-        galleryChanged,
       },
       {
         onError: handleApiError,
@@ -242,8 +179,7 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
   };
 
   const titleError = errors.title?.message;
-  const showGeneralError =
-    generalError && !titleError && !mediaError && !mainPicError;
+  const showGeneralError = generalError && !titleError && !mainPicError;
 
   return (
     <div className="flex min-h-full w-full flex-col pb-24 sm:pb-28">
@@ -256,11 +192,9 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
           Back to Categories
         </Link>
 
-        <h1 className="page-title mt-4">
-          Edit Category
-        </h1>
+        <h1 className="page-title mt-4">Edit Category</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Update category details and media
+          Update category details and main image
         </p>
       </div>
 
@@ -320,14 +254,20 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
                 )}
                 value={description ?? ""}
                 onChange={(event) =>
-                  setValue("description", event.target.value, { shouldValidate: true })
+                  setValue("description", event.target.value, {
+                    shouldValidate: true,
+                  })
                 }
               />
               {errors.description?.message ? (
                 <p className="flex items-center gap-1 text-xs text-destructive">
-                  <span>⚠</span> {errors.description.message}
+                  {errors.description.message}
                 </p>
               ) : null}
+              <p className="text-xs text-muted-foreground">
+                Note: the API does not return description after save, so this
+                field may appear empty when you reopen the page.
+              </p>
             </div>
           </div>
         </Card>
@@ -337,19 +277,6 @@ export function EditCategoryPage({ category }: EditCategoryPageProps) {
           onSelectFile={handleMainPicSelect}
           onRemove={handleMainPicRemove}
           error={mainPicError ?? undefined}
-        />
-
-        <EntityMediaSection
-          title="Gallery Media"
-          media={galleryMedia}
-          mainIndex={-1}
-          onAddFiles={handleGalleryAddFiles}
-          onRemoveAt={removeGalleryAt}
-          onReorderMedia={reorderGallery}
-          canRemoveItem={(item) => !item.id}
-          error={mediaError ?? undefined}
-          showMainBadge={false}
-          tipText="Drag to reorder gallery items. You can add new media, but existing items cannot be removed."
         />
 
         {showGeneralError ? (

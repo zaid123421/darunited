@@ -19,6 +19,11 @@ function shouldUseDirectBackend(path: string) {
     return false;
   }
 
+  // Public invitation acceptance stays on the Next BFF (no auth + same-origin).
+  if (path.includes("/account/accept-invitation")) {
+    return false;
+  }
+
   // Same-origin `/auth/*` is the Next BFF (rewritten from /api/auth).
   // Laravel is only hit via absolute backend URLs or admin paths.
   return (
@@ -157,19 +162,20 @@ export async function clientFetch<T>(
 export async function clientUpload<T>(
   path: string,
   formData: FormData,
-  options: Omit<RequestInit, "body" | "method"> = {},
+  options: Omit<RequestInit, "body"> & { method?: "POST" | "PUT" | "PATCH" } = {},
 ): Promise<GlobalResponse<T>> {
   const url = resolveClientUrl(path);
   const isDirectBackendRequest = shouldUseDirectBackend(path);
+  const { method = "POST", ...rest } = options;
 
   return executeClientRequest<T>(path, () =>
     fetch(url, withDirectAuthHeaders(path, {
-      ...options,
-      method: "POST",
+      ...rest,
+      method,
       credentials: isDirectBackendRequest ? "omit" : "include",
       headers: {
         Accept: "application/json",
-        ...(options.headers as Record<string, string>),
+        ...(rest.headers as Record<string, string>),
       },
       body: formData,
     })),

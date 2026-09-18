@@ -4,11 +4,14 @@ import type {
   CategoryListData,
   CategoryListParams,
   CategoryShowData,
-  CategoryShowParams,
 } from "@/modules/categories/types";
+import type {
+  CategorySubcategoriesData,
+  SubcategoryListParams,
+} from "@/modules/subcategories/types";
 
 function buildQuery(
-  params: CategoryListParams | CategoryShowParams | undefined = {},
+  params: CategoryListParams | SubcategoryListParams | undefined = {},
 ) {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -22,10 +25,17 @@ function buildQuery(
 
 export const categoriesApi = {
   list: (params?: CategoryListParams) =>
-    serverFetch<CategoryListData>(`/admin/categories/all${buildQuery(params)}`),
+    serverFetch<CategoryListData>(
+      `/admin/categories/show-all${buildQuery(params)}`,
+    ),
 
-  getById: (id: number | string, params?: CategoryShowParams) =>
-    serverFetch<CategoryShowData>(`/admin/categories/show/${id}${buildQuery(params)}`),
+  getById: (id: number | string) =>
+    serverFetch<CategoryShowData>(`/admin/categories/show/${id}`),
+
+  getSubcategories: (id: number | string, params?: SubcategoryListParams) =>
+    serverFetch<CategorySubcategoriesData>(
+      `/admin/categories/${id}/subcategories${buildQuery(params)}`,
+    ),
 
   create: (formData: FormData) =>
     serverFetch<Category>("/admin/categories/add-category", {

@@ -1,15 +1,11 @@
 import { serverFetch } from "@/shared/lib/api/server";
 import type {
-  Subcategory,
   SubcategoryListData,
   SubcategoryListParams,
   SubcategoryShowData,
-  SubcategoryShowParams,
 } from "@/modules/subcategories/types";
 
-function buildQuery(
-  params: SubcategoryListParams | SubcategoryShowParams | undefined = {},
-) {
+function buildQuery(params: SubcategoryListParams | undefined = {}) {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== "") {
@@ -22,13 +18,15 @@ function buildQuery(
 
 export const subcategoriesApi = {
   list: (params?: SubcategoryListParams) =>
-    serverFetch<SubcategoryListData>(`/admin/subcategories/all${buildQuery(params)}`),
+    serverFetch<SubcategoryListData>(
+      `/admin/subcategories/show-all${buildQuery(params)}`,
+    ),
 
-  getById: (id: number | string, params?: SubcategoryShowParams) =>
-    serverFetch<SubcategoryShowData>(`/admin/subcategories/show/${id}${buildQuery(params)}`),
+  getById: (id: number | string) =>
+    serverFetch<SubcategoryShowData>(`/admin/subcategories/show/${id}`),
 
   create: (formData: FormData) =>
-    serverFetch<Subcategory>("/admin/subcategories/add-subcategory", {
+    serverFetch<null>("/admin/subcategories/add-subcategory", {
       method: "POST",
       body: formData,
       isFormData: true,

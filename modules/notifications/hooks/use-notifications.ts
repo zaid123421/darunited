@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notificationsClientApi } from "@/modules/notifications/api/notifications.client.api";
+import { NOTIFICATIONS_ENABLED } from "@/modules/notifications/constants";
 
 export const notificationQueryKeys = {
   all: ["notifications"] as const,
@@ -9,8 +10,9 @@ export const notificationQueryKeys = {
 };
 
 const notificationQueryOptions = {
+  enabled: NOTIFICATIONS_ENABLED,
   staleTime: 0,
-  refetchOnWindowFocus: true,
+  refetchOnWindowFocus: NOTIFICATIONS_ENABLED,
 } as const;
 
 const NOTIFICATIONS_PER_PAGE = 10;
@@ -28,7 +30,7 @@ export function useInfiniteNotifications(perPage = NOTIFICATIONS_PER_PAGE) {
         ? lastPage.pagination.current_page + 1
         : undefined,
     ...notificationQueryOptions,
-    refetchInterval: 30_000,
+    refetchInterval: NOTIFICATIONS_ENABLED ? 30_000 : false,
     refetchIntervalInBackground: false,
   });
 }
@@ -41,7 +43,7 @@ export function useUnreadNotificationCount() {
       return response.data.count;
     },
     ...notificationQueryOptions,
-    refetchInterval: 15_000,
+    refetchInterval: NOTIFICATIONS_ENABLED ? 15_000 : false,
     refetchIntervalInBackground: false,
   });
 }

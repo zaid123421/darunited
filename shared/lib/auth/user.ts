@@ -16,11 +16,12 @@ export function getUserInitials(userName: string): string {
 }
 
 export function toStoredAuthUser(user: {
-  user_name: string;
+  user_name?: string;
+  fullName?: string;
   role: string;
 }) {
   return {
-    user_name: user.user_name,
+    user_name: user.user_name?.trim() || user.fullName?.trim() || "",
     role: normalizeRole(user.role) ?? user.role,
   };
 }

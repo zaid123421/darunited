@@ -113,7 +113,7 @@ export function EntityMainPicSection({
 
       {error ? (
         <p className="mt-3 flex items-center gap-1 text-xs text-destructive sm:text-sm">
-          <span>âڑ </span> {error}
+          {error}
         </p>
       ) : null}
 
