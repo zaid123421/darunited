@@ -1,0 +1,21 @@
+Subject: Your DAR United account invitation
+
+Welcome to DAR United
+
+Hello {{name}},
+
+An {{role}} account has been created for you.
+
+Use the link below to verify your email address and activate your account:
+
+{{activationUrl}}
+
+This invitation expires at:
+{{expiresAt}}
+
+After activation, sign in through the normal email verification-code flow.
+
+If you were not expecting this invitation, you may ignore this email.
+
+Regards,
+DAR United
