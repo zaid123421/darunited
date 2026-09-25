@@ -2,7 +2,8 @@ import type { MediaItem } from "@/modules/media/types";
 
 type BuildProductFormDataInput = {
   title: string;
-  description?: string;
+  description: string;
+  subCategoryIds: number[];
   media: MediaItem[];
   mainIndex: number;
 };
@@ -10,16 +11,18 @@ type BuildProductFormDataInput = {
 export function buildProductFormData({
   title,
   description,
+  subCategoryIds,
   media,
   mainIndex,
 }: BuildProductFormDataInput): FormData {
   const formData = new FormData();
 
   formData.append("title", title.trim());
+  formData.append("description", description.trim());
 
-  if (description?.trim()) {
-    formData.append("description", description.trim());
-  }
+  subCategoryIds.forEach((id) => {
+    formData.append("subCategoryIds[]", String(id));
+  });
 
   media.forEach((item, index) => {
     if (!item.file) {
@@ -32,7 +35,7 @@ export function buildProductFormData({
     }
 
     if (index === mainIndex) {
-      formData.append("pic", item.file);
+      formData.append("mainPic", item.file);
       return;
     }
 

@@ -1,5 +1,5 @@
 import { clientFetch, clientUpload } from "@/shared/lib/api/client";
-import { buildSyncGalleryFormData } from "@/modules/services/lib/build-sync-gallery-form-data";
+import { buildSyncGalleryFormData } from "@/modules/media/lib/build-sync-gallery-form-data";
 import type { UpdateProjectInput } from "@/modules/projects/types";
 
 function buildMainPicFormData(file: File) {
@@ -11,12 +11,7 @@ function buildMainPicFormData(file: File) {
 function hasInfoChanges(input: UpdateProjectInput) {
   return (
     input.title.trim() !== input.initialTitle.trim() ||
-    input.clientName.trim() !== input.initialClientName.trim() ||
-    input.clientRegion.trim() !== input.initialClientRegion.trim() ||
-    input.actualProjectDate.trim() !== input.initialActualProjectDate.trim() ||
-    input.description.trim() !== input.initialDescription.trim() ||
-    input.status !== input.initialStatus ||
-    input.serviceId !== input.initialServiceId
+    input.description.trim() !== input.initialDescription.trim()
   );
 }
 
@@ -50,12 +45,7 @@ export const projectsClientApi = {
     if (hasInfoChanges(input)) {
       await projectsClientApi.update(input.id, {
         title: input.title.trim(),
-        clientName: input.clientName.trim(),
-        clientRegion: input.clientRegion.trim(),
-        actualProjectDate: input.actualProjectDate.trim(),
         description: input.description.trim(),
-        status: input.status,
-        serviceId: String(input.serviceId),
       });
     }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
+import { SubcategoryProductsSection } from "@/modules/products/components/subcategory-products-section";
 import { useDeleteSubcategory } from "@/modules/subcategories/hooks/use-delete-subcategory";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
 import {
@@ -12,12 +13,15 @@ import {
   getSubcategoryPicUrl,
 } from "@/modules/subcategories/lib/subcategory-media-mappers";
 import type { SubcategoryDetail } from "@/modules/subcategories/types";
+import type { NestedProductsListData } from "@/modules/products/types";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
 import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
 
 interface ShowSubcategoryPageProps {
   subcategory: SubcategoryDetail;
+  products: NestedProductsListData;
+  productsLoadError?: boolean;
 }
 
 type FeedbackState = {
@@ -25,7 +29,11 @@ type FeedbackState = {
   message: string;
 };
 
-export function ShowSubcategoryPage({ subcategory }: ShowSubcategoryPageProps) {
+export function ShowSubcategoryPage({
+  subcategory,
+  products,
+  productsLoadError = false,
+}: ShowSubcategoryPageProps) {
   const router = useRouter();
   const { canWrite } = usePermissions();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -43,8 +51,7 @@ export function ShowSubcategoryPage({ subcategory }: ShowSubcategoryPageProps) {
       setShowDeleteDialog(false);
       setFeedback({
         type: "error",
-        message:
-          error.message || "Failed to delete subcategory. Please try again.",
+        message: error.message || "Failed to delete subcategory. Please try again.",
       });
     },
   });
@@ -124,9 +131,7 @@ export function ShowSubcategoryPage({ subcategory }: ShowSubcategoryPageProps) {
             <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Title
             </dt>
-            <dd className="text-base font-medium text-foreground">
-              {subcategory.title}
-            </dd>
+            <dd className="text-base font-medium text-foreground">{subcategory.title}</dd>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -148,18 +153,12 @@ export function ShowSubcategoryPage({ subcategory }: ShowSubcategoryPageProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <dt className="text-sm font-medium text-muted-foreground">
-              Description
-            </dt>
+            <dt className="text-sm font-medium text-muted-foreground">Description</dt>
             <dd className="text-sm leading-relaxed text-foreground">
               {hasDescription ? (
-                <span className="whitespace-pre-wrap">
-                  {subcategory.description}
-                </span>
+                <span className="whitespace-pre-wrap">{subcategory.description}</span>
               ) : (
-                <span className="text-muted-foreground">
-                  No description provided.
-                </span>
+                <span className="text-muted-foreground">No description provided.</span>
               )}
             </dd>
           </div>
@@ -181,11 +180,15 @@ export function ShowSubcategoryPage({ subcategory }: ShowSubcategoryPageProps) {
             />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No main thumbnail uploaded.
-          </p>
+          <p className="text-sm text-muted-foreground">No main thumbnail uploaded.</p>
         )}
       </Card>
+
+      <SubcategoryProductsSection
+        subcategoryId={subcategory.id}
+        data={products}
+        loadError={productsLoadError}
+      />
 
       <ConfirmDialog
         open={showDeleteDialog}

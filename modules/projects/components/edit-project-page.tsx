@@ -5,13 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { ServiceMainPicSection } from "@/modules/services/components/service-main-pic-section";
-import { ServiceMediaSection } from "@/modules/services/components/service-media-section";
-import { useGalleryEdit } from "@/modules/services/hooks/use-gallery-edit";
-import { PROJECT_STATUSES } from "@/modules/projects/constants";
+import { toast } from "sonner";
+import { useGalleryEdit } from "@/modules/media/hooks/use-gallery-edit";
+import { EntityMainPicSection } from "@/modules/media/components/entity-main-pic-section";
+import { EntityMediaSection } from "@/modules/media/components/entity-media-section";
 import { useUpdateProject } from "@/modules/projects/hooks/use-update-project";
 import {
-  findServiceIdByTitle,
   getGalleryFromProject,
   getMainPicFromProject,
 } from "@/modules/projects/lib/project-media-mappers";
@@ -21,36 +20,27 @@ import {
   type ProjectFormSubmitValues,
   type ProjectFormValues,
 } from "@/modules/projects/schemas/project.schema";
-import type { MainPicAction, ProjectDetail, ServiceOption } from "@/modules/projects/types";
+import type { MainPicAction, ProjectDetail } from "@/modules/projects/types";
 import {
   INVALID_IMAGE_TYPE_MESSAGE,
   isAllowedImageFile,
 } from "@/modules/media/lib/media-file-validation";
-import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
-import { Select } from "@/shared/components/ui/select";
 import { cn } from "@/shared/lib/cn";
 import { inputFocusRingClass } from "@/shared/lib/input-focus";
 import { ApiError } from "@/shared/types/global-response";
 
 interface EditProjectPageProps {
   project: ProjectDetail;
-  services: ServiceOption[];
 }
 
-export function EditProjectPage({ project, services }: EditProjectPageProps) {
+export function EditProjectPage({ project }: EditProjectPageProps) {
   const initialMainPic = getMainPicFromProject(project);
   const initialGallery = useMemo(() => getGalleryFromProject(project), [project]);
-  const initialServiceId = findServiceIdByTitle(services, project.service);
 
-  const updateProject = useUpdateProject({
-    onSuccess: () => {
-      setSuccessMessage("Project updated successfully.");
-      setGeneralError(null);
-    },
-  });
+  const updateProject = useUpdateProject();
 
   const {
     media: galleryMedia,
@@ -68,8 +58,6 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
   const [mainPicRemoved, setMainPicRemoved] = useState(false);
   const [mainPicError, setMainPicError] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [generalError, setGeneralError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
     register,
@@ -83,32 +71,12 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
       title: project.title,
-      clientName: project.clientName,
-      clientRegion: project.clientRegion,
-      serviceId: initialServiceId,
       description: project.description,
-      actualProjectDate: project.actualProjectDate,
-      status: project.status,
     },
   });
 
   const description = watch("description");
   const title = watch("title");
-  const status = watch("status");
-  const serviceId = watch("serviceId");
-  const clientName = watch("clientName");
-  const clientRegion = watch("clientRegion");
-  const actualProjectDate = watch("actualProjectDate");
-
-  const serviceOptions = services.map((service) => ({
-    label: service.title,
-    value: String(service.id),
-  }));
-
-  const statusOptions = PROJECT_STATUSES.map((item) => ({
-    label: item.label,
-    value: item.value,
-  }));
 
   useEffect(() => {
     resetGallery(initialGallery);
@@ -117,7 +85,6 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
     setMainPicRemoved(false);
     setMainPicError(null);
     setMediaError(null);
-    setGeneralError(null);
   }, [initialGallery, initialMainPic?.url, resetGallery, project.id]);
 
   useEffect(() => {
@@ -146,24 +113,13 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
 
   const hasInfoChanges =
     title.trim() !== project.title.trim() ||
-    clientName.trim() !== project.clientName.trim() ||
-    clientRegion.trim() !== project.clientRegion.trim() ||
-    actualProjectDate.trim() !== project.actualProjectDate.trim() ||
-    description.trim() !== project.description.trim() ||
-    status !== project.status ||
-    serviceId !== initialServiceId;
+    description.trim() !== project.description.trim();
 
   const hasChanges = hasInfoChanges || hasMainPicChanges || galleryChanged;
 
   const resolveMainPicAction = (): MainPicAction => {
-    if (mainPicFile) {
-      return "upload";
-    }
-
-    if (initialMainPic && mainPicRemoved) {
-      return "delete";
-    }
-
+    if (mainPicFile) return "upload";
+    if (initialMainPic && mainPicRemoved) return "delete";
     return "none";
   };
 
@@ -181,7 +137,6 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
     setMainPicPreview(URL.createObjectURL(file));
     setMainPicRemoved(false);
     setMainPicError(null);
-    setSuccessMessage(null);
   };
 
   const handleMainPicRemove = () => {
@@ -193,7 +148,6 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
     setMainPicFile(null);
     setMainPicRemoved(true);
     setMainPicError(null);
-    setSuccessMessage(null);
   };
 
   const handleGalleryAddFiles = (files: FileList) => {
@@ -201,16 +155,12 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
 
     if (result.invalidImageMessage) {
       setMediaError(result.invalidImageMessage);
-      return;
     }
-
-    setSuccessMessage(null);
   };
 
   const handleApiError = (error: unknown) => {
     if (!(error instanceof ApiError)) {
-      setGeneralError("Something went wrong. Please try again.");
-      return;
+      return; // hook already toasted
     }
 
     const parsed = parseProjectApiError(error);
@@ -219,31 +169,8 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
       setError("title", { type: "server", message: parsed.title });
     }
 
-    if (parsed.clientName) {
-      setError("clientName", { type: "server", message: parsed.clientName });
-    }
-
-    if (parsed.clientRegion) {
-      setError("clientRegion", { type: "server", message: parsed.clientRegion });
-    }
-
-    if (parsed.serviceId) {
-      setError("serviceId", { type: "server", message: parsed.serviceId });
-    }
-
     if (parsed.description) {
       setError("description", { type: "server", message: parsed.description });
-    }
-
-    if (parsed.actualProjectDate) {
-      setError("actualProjectDate", {
-        type: "server",
-        message: parsed.actualProjectDate,
-      });
-    }
-
-    if (parsed.status) {
-      setError("status", { type: "server", message: parsed.status });
     }
 
     if (parsed.mainPic) {
@@ -255,19 +182,17 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
     }
 
     if (parsed.general) {
-      setGeneralError(parsed.general);
+      toast.error(parsed.general);
     }
   };
 
   const onSubmit = (values: ProjectFormSubmitValues) => {
     setMediaError(null);
     setMainPicError(null);
-    setGeneralError(null);
-    setSuccessMessage(null);
     clearErrors();
 
     if (!hasChanges) {
-      setGeneralError("No changes to save.");
+      toast.error("No changes to save.");
       return;
     }
 
@@ -284,19 +209,9 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
       {
         id: project.id,
         title: values.title,
-        clientName: values.clientName,
-        clientRegion: values.clientRegion,
-        actualProjectDate: values.actualProjectDate,
         description: values.description,
-        status: values.status,
-        serviceId: values.serviceId,
         initialTitle: project.title,
-        initialClientName: project.clientName,
-        initialClientRegion: project.clientRegion,
-        initialActualProjectDate: project.actualProjectDate,
         initialDescription: project.description,
-        initialStatus: project.status,
-        initialServiceId: initialServiceId,
         mainPicAction: resolveMainPicAction(),
         mainPicFile: mainPicFile ?? undefined,
         galleryItems: galleryMedia,
@@ -307,18 +222,6 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
       },
     );
   };
-
-  const hasFieldErrors =
-    errors.title ||
-    errors.clientName ||
-    errors.clientRegion ||
-    errors.serviceId ||
-    errors.description ||
-    errors.actualProjectDate ||
-    errors.status;
-
-  const showGeneralError =
-    generalError && !hasFieldErrors && !mediaError && !mainPicError;
 
   return (
     <div className="flex min-h-full w-full flex-col pb-24 sm:pb-28">
@@ -331,23 +234,9 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
           Back to Project
         </Link>
 
-        <h1 className="page-title mt-4">
-          Edit Project
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Update project details and media
-        </p>
+        <h1 className="page-title mt-4">Edit Project</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Update project details and media</p>
       </div>
-
-      {successMessage ? (
-        <div className="mb-4 sm:mb-5">
-          <FeedbackBanner
-            type="success"
-            message={successMessage}
-            onDismiss={() => setSuccessMessage(null)}
-          />
-        </div>
-      ) : null}
 
       <form
         id="edit-project-form"
@@ -376,57 +265,6 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input
-                label="Client Name"
-                placeholder="e.g. Dartic"
-                className="h-12 rounded-xl bg-input"
-                error={errors.clientName?.message}
-                {...register("clientName")}
-              />
-              <Input
-                label="Client Region"
-                placeholder="e.g. Egypt"
-                className="h-12 rounded-xl bg-input"
-                error={errors.clientRegion?.message}
-                {...register("clientRegion")}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Select
-                label="Service"
-                placeholder="Select a service"
-                options={serviceOptions}
-                value={serviceId ? String(serviceId) : ""}
-                onValueChange={(value) =>
-                  setValue("serviceId", Number(value), {
-                    shouldValidate: true,
-                  })
-                }
-                error={errors.serviceId?.message}
-              />
-              <Select
-                label="Status"
-                options={statusOptions}
-                value={status}
-                onValueChange={(value) =>
-                  setValue("status", value as ProjectFormValues["status"], {
-                    shouldValidate: true,
-                  })
-                }
-                error={errors.status?.message}
-              />
-            </div>
-
-            <Input
-              label="Project Date"
-              type="date"
-              className="h-12 rounded-xl bg-input"
-              error={errors.actualProjectDate?.message}
-              {...register("actualProjectDate")}
-            />
-
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="project-description"
@@ -450,22 +288,20 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
                 }
               />
               {errors.description?.message ? (
-                <p className="flex items-center gap-1 text-xs text-destructive">
-                  {errors.description.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.description.message}</p>
               ) : null}
             </div>
           </div>
         </Card>
 
-        <ServiceMainPicSection
+        <EntityMainPicSection
           previewUrl={mainPicPreview}
           onSelectFile={handleMainPicSelect}
           onRemove={handleMainPicRemove}
           error={mainPicError ?? undefined}
         />
 
-        <ServiceMediaSection
+        <EntityMediaSection
           title="Gallery Media"
           media={galleryMedia}
           mainIndex={-1}
@@ -476,12 +312,6 @@ export function EditProjectPage({ project, services }: EditProjectPageProps) {
           error={mediaError ?? undefined}
           tipText="Drag to reorder gallery items. You can add or remove images and videos."
         />
-
-        {showGeneralError ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {generalError}
-          </div>
-        ) : null}
       </form>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/40 backdrop-blur-md lg:left-[260px]">

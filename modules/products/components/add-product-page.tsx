@@ -5,35 +5,43 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { EntityMediaSection } from "@/modules/media/components/entity-media-section";
 import { PRODUCT_FORM_DEFAULTS } from "@/modules/products/constants";
 import { useCreateProduct } from "@/modules/products/hooks/use-create-product";
 import { buildProductFormData } from "@/modules/products/lib/build-product-form-data";
 import { parseProductApiError } from "@/modules/products/lib/parse-product-api-error";
+import { ProductSubcategoryPicker } from "@/modules/products/components/product-subcategory-picker";
 import {
   productFormSchema,
   type ProductFormSubmitValues,
   type ProductFormValues,
 } from "@/modules/products/schemas/product.schema";
+import type { CategoryOption, SubCategoryOption } from "@/modules/products/types";
 import { useMediaUpload } from "@/modules/media/hooks/use-media-upload";
-import { INVALID_IMAGE_TYPE_MESSAGE, isAllowedImageFile } from "@/modules/media/lib/media-file-validation";
+import {
+  INVALID_IMAGE_TYPE_MESSAGE,
+  isAllowedImageFile,
+} from "@/modules/media/lib/media-file-validation";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
+import { Select } from "@/shared/components/ui/select";
 import { cn } from "@/shared/lib/cn";
 import { inputFocusRingClass } from "@/shared/lib/input-focus";
 import { ApiError } from "@/shared/types/global-response";
 
-export function AddProductPage() {
+interface AddProductPageProps {
+  categories: CategoryOption[];
+  subCategories: SubCategoryOption[];
+}
+
+export function AddProductPage({ categories, subCategories }: AddProductPageProps) {
   const createProduct = useCreateProduct();
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [generalError, setGeneralError] = useState<string | null>(null);
-  const { media, mainIndex, addFiles, removeAt, reorderMedia } = useMediaUpload(
-    [],
-    {
-      onValidationError: setMediaError,
-    },
-  );
+  const { media, mainIndex, addFiles, removeAt, reorderMedia } = useMediaUpload([], {
+    onValidationError: setMediaError,
+  });
 
   const {
     register,
@@ -50,12 +58,18 @@ export function AddProductPage() {
 
   const description = watch("description");
   const title = watch("title");
+  const categoryId = watch("categoryId") as number;
+  const subCategoryIds = watch("subCategoryIds") as number[];
+
+  const categoryOptions = categories.map((cat) => ({
+    label: cat.title,
+    value: String(cat.id),
+  }));
 
   useEffect(() => {
     if (errors.title?.type === "server") {
       clearErrors("title");
     }
-    // Only clear server title errors when the user edits the field.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, clearErrors]);
 
@@ -63,14 +77,12 @@ export function AddProductPage() {
     if (mediaError) {
       setMediaError(null);
     }
-    // Only clear media errors when the user changes uploaded files.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [media]);
 
   const handleApiError = (error: unknown) => {
     if (!(error instanceof ApiError)) {
-      setGeneralError("Something went wrong. Please try again.");
-      return;
+      return; // hook already toasted
     }
 
     const parsed = parseProductApiError(error);
@@ -79,19 +91,26 @@ export function AddProductPage() {
       setError("title", { type: "server", message: parsed.title });
     }
 
-    if (parsed.media) {
-      setMediaError(parsed.media);
+    if (parsed.description) {
+      setError("description", { type: "server", message: parsed.description });
+    }
+
+    if (parsed.subCategoryIds) {
+      setError("subCategoryIds", { type: "server", message: parsed.subCategoryIds });
+    }
+
+    if (parsed.media || parsed.mainPic) {
+      setMediaError(parsed.media ?? parsed.mainPic ?? null);
     }
 
     if (parsed.general) {
-      setGeneralError(parsed.general);
+      toast.error(parsed.general);
     }
   };
 
   const onSubmit = (values: ProductFormSubmitValues) => {
     setMediaError(null);
-    setGeneralError(null);
-    clearErrors("title");
+    clearErrors();
     createProduct.reset();
 
     const hasInvalidImage = media.some(
@@ -103,9 +122,15 @@ export function AddProductPage() {
       return;
     }
 
+    if (mainIndex < 0 || !media[mainIndex]?.file) {
+      setMediaError("A main image is required.");
+      return;
+    }
+
     const formData = buildProductFormData({
       title: values.title,
       description: values.description,
+      subCategoryIds: values.subCategoryIds,
       media,
       mainIndex,
     });
@@ -115,8 +140,11 @@ export function AddProductPage() {
     });
   };
 
-  const titleError = errors.title?.message;
-  const showGeneralError = generalError && !titleError && !mediaError;
+  // Derive error message for subCategoryIds (works for both root array and element errors)
+  const subCategoryError =
+    (errors.subCategoryIds as unknown as { message?: string } | undefined)?.message ??
+    (errors.subCategoryIds as unknown as { root?: { message?: string } } | undefined)?.root
+      ?.message;
 
   return (
     <div className="flex min-h-full w-full flex-col pb-24 sm:pb-28">
@@ -129,12 +157,8 @@ export function AddProductPage() {
           Back to Products
         </Link>
 
-        <h1 className="page-title mt-4">
-          Add Product
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Create a new product offering
-        </p>
+        <h1 className="page-title mt-4">Add Product</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Create a new product offering</p>
       </div>
 
       <form
@@ -148,6 +172,7 @@ export function AddProductPage() {
           </CardTitle>
 
           <div className="flex flex-col gap-4 sm:gap-6">
+            {/* Title */}
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="product-title"
@@ -159,17 +184,18 @@ export function AddProductPage() {
                 id="product-title"
                 placeholder="e.g. Professional Web Design"
                 className="h-12 rounded-xl bg-input"
-                error={titleError}
+                error={errors.title?.message}
                 {...register("title")}
               />
             </div>
 
+            {/* Description */}
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="product-description"
                 className="text-sm font-medium text-muted-foreground"
               >
-                Description
+                Description <span className="text-destructive">*</span>
               </label>
               <textarea
                 id="product-description"
@@ -187,10 +213,39 @@ export function AddProductPage() {
                 }
               />
               {errors.description?.message ? (
-                <p className="flex items-center gap-1 text-xs text-destructive">
-                  {errors.description.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.description.message}</p>
               ) : null}
+            </div>
+
+            {/* Category */}
+            <Select
+              label="Category"
+              placeholder="Select a category"
+              options={categoryOptions}
+              value={categoryId > 0 ? String(categoryId) : ""}
+              onValueChange={(value) => {
+                setValue("categoryId", Number(value), { shouldValidate: true });
+                setValue("subCategoryIds", [], { shouldValidate: false });
+              }}
+              error={
+                (errors.categoryId as unknown as { message?: string } | undefined)?.message
+              }
+            />
+
+            {/* Subcategories */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Subcategories <span className="text-destructive">*</span>
+              </label>
+              <ProductSubcategoryPicker
+                subCategories={subCategories}
+                selectedCategoryId={categoryId ?? 0}
+                selectedIds={(subCategoryIds as number[]) ?? []}
+                onChange={(ids) =>
+                  setValue("subCategoryIds", ids, { shouldValidate: true })
+                }
+                error={subCategoryError}
+              />
             </div>
           </div>
         </Card>
@@ -204,12 +259,6 @@ export function AddProductPage() {
           onReorderMedia={reorderMedia}
           error={mediaError ?? undefined}
         />
-
-        {showGeneralError ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {generalError}
-          </div>
-        ) : null}
       </form>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/40 backdrop-blur-md lg:left-[260px]">

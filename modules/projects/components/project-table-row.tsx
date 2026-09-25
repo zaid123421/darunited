@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
 import { ProjectListThumbnail } from "@/modules/projects/components/project-list-thumbnail";
-import { getProjectStatusLabel } from "@/modules/projects/lib/get-project-status-label";
 import type { ProjectListItem } from "@/modules/projects/types";
 
 interface ProjectTableRowProps {
@@ -32,13 +31,8 @@ export function ProjectTableRow({ project, onDelete }: ProjectTableRowProps) {
           {project.title}
         </Link>
       </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">{project.clientName}</td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">{project.service}</td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">
-        {getProjectStatusLabel(project.status)}
-      </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">
-        {project.actualProjectDate}
+      <td className="max-w-xs px-4 py-3 text-sm text-muted-foreground">
+        <span className="line-clamp-2">{project.description ?? "—"}</span>
       </td>
       <td className="px-4 py-3 text-right">
         {canWrite ? (

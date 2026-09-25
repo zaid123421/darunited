@@ -2,78 +2,40 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronLeft, Pencil, Trash2, Video } from "lucide-react";
 import { useDeleteProject } from "@/modules/projects/hooks/use-delete-project";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
 import {
-  formatProjectDisplayDate,
   getGalleryFromProject,
   getMainPicFromProject,
   isVideoMedia,
 } from "@/modules/projects/lib/project-media-mappers";
-import { PROJECT_STATUSES } from "@/modules/projects/constants";
-import type { ProjectDetail, ProjectMedia } from "@/modules/projects/types";
+import type { ProjectDetail } from "@/modules/projects/types";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
-import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
-import { Pagination } from "@/shared/components/ui/pagination";
-import { cn } from "@/shared/lib/cn";
 
 interface ShowProjectPageProps {
   project: ProjectDetail;
-  mainPic?: ProjectMedia;
-  mediaBasePath: string;
 }
 
-type FeedbackState = {
-  type: "success" | "error";
-  message: string;
-};
-
-function getStatusLabel(status: ProjectDetail["status"]) {
-  return PROJECT_STATUSES.find((item) => item.value === status)?.label ?? status;
-}
-
-export function ShowProjectPage({
-  project,
-  mainPic,
-  mediaBasePath,
-}: ShowProjectPageProps) {
+export function ShowProjectPage({ project }: ShowProjectPageProps) {
   const router = useRouter();
   const { canWrite } = usePermissions();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
-  const resolvedMainPic = mainPic ?? getMainPicFromProject(project);
+  const mainPic = getMainPicFromProject(project);
   const galleryItems = getGalleryFromProject(project);
-  const pagination = project.pagination;
 
   const deleteProject = useDeleteProject({
     onSuccess: () => {
       setShowDeleteDialog(false);
       router.push("/dashboard/projects");
     },
-    onError: (error) => {
+    onError: () => {
       setShowDeleteDialog(false);
-      setFeedback({
-        type: "error",
-        message: error.message || "Failed to delete project. Please try again.",
-      });
     },
   });
-
-  useEffect(() => {
-    if (!feedback) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      setFeedback(null);
-    }, 5000);
-
-    return () => window.clearTimeout(timeout);
-  }, [feedback]);
 
   const handleDeleteConfirm = () => {
     deleteProject.mutate(project.id);
@@ -92,9 +54,7 @@ export function ShowProjectPage({
           </Link>
 
           <h1 className="page-title mt-4">{project.title}</h1>
-          <p className="page-subtitle mt-1">
-            Project details and media gallery
-          </p>
+          <p className="page-subtitle mt-1">Project details and media gallery</p>
         </div>
 
         {canWrite ? (
@@ -120,20 +80,12 @@ export function ShowProjectPage({
         ) : null}
       </div>
 
-      {feedback ? (
-        <FeedbackBanner
-          type={feedback.type}
-          message={feedback.message}
-          onDismiss={() => setFeedback(null)}
-        />
-      ) : null}
-
       <Card className="p-4 sm:p-6">
         <CardTitle className="mb-4 text-sm font-semibold sm:mb-6 sm:text-base">
           Project Information
         </CardTitle>
 
-        <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <dl className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
             <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Title
@@ -142,37 +94,6 @@ export function ShowProjectPage({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Status
-            </dt>
-            <dd className="text-base font-medium text-foreground">
-              {getStatusLabel(project.status)}
-            </dd>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <dt className="text-sm font-medium text-muted-foreground">Client Name</dt>
-            <dd className="text-sm text-foreground">{project.clientName}</dd>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <dt className="text-sm font-medium text-muted-foreground">Client Region</dt>
-            <dd className="text-sm text-foreground">{project.clientRegion}</dd>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <dt className="text-sm font-medium text-muted-foreground">Service</dt>
-            <dd className="text-sm text-foreground">{project.service}</dd>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <dt className="text-sm font-medium text-muted-foreground">Project Date</dt>
-            <dd className="text-sm text-foreground">
-              {formatProjectDisplayDate(project.actualProjectDate)}
-            </dd>
-          </div>
-
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
             <dt className="text-sm font-medium text-muted-foreground">Description</dt>
             <dd className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
               {project.description?.trim()
@@ -188,11 +109,11 @@ export function ShowProjectPage({
           Main Thumbnail
         </CardTitle>
 
-        {resolvedMainPic ? (
+        {mainPic ? (
           <div className="aspect-video w-full max-w-xl overflow-hidden rounded-xl border border-border bg-muted">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={resolvedMainPic.url}
+              src={mainPic.url}
               alt={`${project.title} main thumbnail`}
               className="h-full w-full object-cover"
             />
@@ -244,21 +165,6 @@ export function ShowProjectPage({
               ))}
           </div>
         )}
-
-        {pagination && pagination.total > 0 ? (
-          <div className="mt-6 border-t border-border pt-6">
-            <Pagination
-              currentPage={pagination.current_page}
-              lastPage={pagination.last_page}
-              total={pagination.total}
-              from={pagination.from}
-              to={pagination.to}
-              hasMore={pagination.has_more}
-              basePath={mediaBasePath}
-              itemLabel="media items"
-            />
-          </div>
-        ) : null}
       </Card>
 
       <ConfirmDialog

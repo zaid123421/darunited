@@ -4,16 +4,11 @@ import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
 import type { ProjectListItem } from "@/modules/projects/types";
-import { PROJECT_STATUSES } from "@/modules/projects/constants";
 import { cn } from "@/shared/lib/cn";
 
 interface ProjectCardProps {
   project: ProjectListItem;
   onDelete: () => void;
-}
-
-function getStatusLabel(status: ProjectListItem["status"]) {
-  return PROJECT_STATUSES.find((item) => item.value === status)?.label ?? status;
 }
 
 export function ProjectCard({ project, onDelete }: ProjectCardProps) {
@@ -44,22 +39,15 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
 
-          <div className="absolute left-3 top-3 z-10">
-            <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
-              {getStatusLabel(project.status)}
-            </span>
-          </div>
-
           <div className="absolute inset-x-0 bottom-0 p-4">
             <h3 className="line-clamp-2 text-base font-semibold leading-snug text-white">
               {project.title}
             </h3>
-            <p className="mt-1 text-xs text-white/80">
-              {project.clientName} · {project.service}
-            </p>
-            <p className="mt-0.5 text-[11px] text-white/65">
-              {project.actualProjectDate}
-            </p>
+            {project.description ? (
+              <p className="mt-1 line-clamp-2 text-xs text-white/75">
+                {project.description}
+              </p>
+            ) : null}
           </div>
         </Link>
 

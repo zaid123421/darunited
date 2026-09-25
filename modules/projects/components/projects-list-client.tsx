@@ -1,45 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
 import { ProjectCard } from "@/modules/projects/components/project-card";
 import { ProjectListRow } from "@/modules/projects/components/project-list-row";
 import { ProjectTableRow } from "@/modules/projects/components/project-table-row";
 import { ProjectsSearchForm } from "@/modules/projects/components/projects-search-form";
+import type { ProjectSearchFilters } from "@/modules/projects/components/projects-search-form";
 import { ProjectsViewToggle } from "@/modules/projects/components/projects-view-toggle";
 import { useDeleteProject } from "@/modules/projects/hooks/use-delete-project";
 import { useProjectsViewMode } from "@/modules/projects/hooks/use-projects-view-mode";
 import { buildProjectsListBasePath } from "@/modules/projects/lib/build-projects-list-path";
-import type { ProjectListData, ServiceOption } from "@/modules/projects/types";
+import type { ProjectListData } from "@/modules/projects/types";
 import { Card } from "@/shared/components/ui/card";
 import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
-import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
 import { Pagination } from "@/shared/components/ui/pagination";
 
 interface ProjectsListClientProps {
   initialData: ProjectListData;
-  services: ServiceOption[];
-  filters: {
-    title?: string;
-    description?: string;
-    clientName?: string;
-    serviceId?: string;
-    actualProjectDate?: string;
-    fromDate?: string;
-    toDate?: string;
-  };
+  filters: ProjectSearchFilters;
   isSearchActive: boolean;
 }
 
-type FeedbackState = {
-  type: "success" | "error";
-  message: string;
-};
-
 export function ProjectsListClient({
   initialData,
-  services,
   filters,
   isSearchActive,
 }: ProjectsListClientProps) {
@@ -49,46 +34,18 @@ export function ProjectsListClient({
   const [projectToDelete, setProjectToDelete] = useState<
     (typeof projects)[number] | null
   >(null);
-  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
   const deleteProject = useDeleteProject({
-    onSuccess: (response) => {
-      setProjectToDelete(null);
-      setFeedback({
-        type: "success",
-        message: response.message || "Project deleted successfully.",
-      });
-    },
-    onError: (error) => {
-      setProjectToDelete(null);
-      setFeedback({
-        type: "error",
-        message: error.message || "Failed to delete project. Please try again.",
-      });
-    },
+    onSuccess: () => setProjectToDelete(null),
+    onError: () => setProjectToDelete(null),
   });
 
-  useEffect(() => {
-    if (!feedback) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      setFeedback(null);
-    }, 5000);
-
-    return () => window.clearTimeout(timeout);
-  }, [feedback]);
-
   const handleDeleteConfirm = () => {
-    if (!projectToDelete) {
-      return;
-    }
-
+    if (!projectToDelete) return;
     deleteProject.mutate(projectToDelete.id);
   };
 
-  const paginationBasePath = `/dashboard/projects${buildProjectsListBasePath(filters)}`;
+  const paginationBasePath = `/dashboard/projects${buildProjectsListBasePath(filters as Record<string, string | undefined>)}`;
 
   const renderDeleteHandler = (project: (typeof projects)[number]) => () => {
     setProjectToDelete(project);
@@ -121,12 +78,9 @@ export function ProjectsListClient({
             <table className="w-full">
               <thead className="bg-muted/30">
                 <tr className="text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <th className="px-4 py-3 w-16" />
+                  <th className="w-16 px-4 py-3" />
                   <th className="px-4 py-3">Title</th>
-                  <th className="px-4 py-3">Client</th>
-                  <th className="px-4 py-3">Service</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Description</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -173,9 +127,7 @@ export function ProjectsListClient({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="page-title">Projects</h1>
-          <p className="page-subtitle mt-1">
-            Search, filter, and manage portfolio projects.
-          </p>
+          <p className="page-subtitle mt-1">Search, filter, and manage portfolio projects.</p>
         </div>
         {canWrite ? (
           <Link
@@ -187,15 +139,7 @@ export function ProjectsListClient({
         ) : null}
       </div>
 
-      <ProjectsSearchForm initialFilters={filters} services={services} />
-
-      {feedback ? (
-        <FeedbackBanner
-          type={feedback.type}
-          message={feedback.message}
-          onDismiss={() => setFeedback(null)}
-        />
-      ) : null}
+      <ProjectsSearchForm initialFilters={filters} />
 
       {projects.length === 0 ? (
         <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">

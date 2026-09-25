@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
 import { ProjectListThumbnail } from "@/modules/projects/components/project-list-thumbnail";
-import { getProjectStatusLabel } from "@/modules/projects/lib/get-project-status-label";
 import type { ProjectListItem } from "@/modules/projects/types";
 import { cn } from "@/shared/lib/cn";
 
@@ -30,20 +29,14 @@ export function ProjectListRow({ project, onDelete }: ProjectListRowProps) {
         />
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">
-              {project.title}
-            </h3>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {getProjectStatusLabel(project.status)}
-            </span>
-          </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
-            {project.clientName} · {project.service}
-          </p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">
-            {project.actualProjectDate}
-          </p>
+          <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">
+            {project.title}
+          </h3>
+          {project.description ? (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
+              {project.description}
+            </p>
+          ) : null}
         </div>
       </Link>
 

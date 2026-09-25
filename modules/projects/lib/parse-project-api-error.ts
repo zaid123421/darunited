@@ -2,12 +2,7 @@ import { ApiError } from "@/shared/types/global-response";
 
 export type ProjectFormFieldErrors = {
   title?: string;
-  clientName?: string;
-  clientRegion?: string;
-  serviceId?: string;
   description?: string;
-  actualProjectDate?: string;
-  status?: string;
   media?: string;
   mainPic?: string;
   general?: string;
@@ -18,21 +13,7 @@ const TITLE_ERROR_PATTERNS = [
   /^A project with the same title already exists\.?$/i,
 ];
 
-const CLIENT_NAME_ERROR_PATTERNS = [/^The client name field is required\.?$/i];
-
-const CLIENT_REGION_ERROR_PATTERNS = [
-  /^The client region field is required\.?$/i,
-];
-
 const DESCRIPTION_ERROR_PATTERNS = [/^The description field is required\.?$/i];
-
-const DATE_ERROR_PATTERNS = [
-  /^The actual project date field is required\.?$/i,
-];
-
-const STATUS_ERROR_PATTERNS = [/^The status field is required\.?$/i];
-
-const SERVICE_ERROR_PATTERNS = [/^The selected service id is invalid\.?$/i];
 
 const MEDIA_ERROR_PATTERNS = [
   /^The main pic field /i,
@@ -58,32 +39,15 @@ export function parseProjectApiError(error: ApiError): ProjectFormFieldErrors {
     return { title: message };
   }
 
-  if (CLIENT_NAME_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
-    return { clientName: message };
-  }
-
-  if (CLIENT_REGION_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
-    return { clientRegion: message };
-  }
-
   if (DESCRIPTION_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
     return { description: message };
   }
 
-  if (DATE_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
-    return { actualProjectDate: message };
-  }
-
-  if (STATUS_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
-    return { status: message };
-  }
-
-  if (SERVICE_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
-    return { serviceId: message };
-  }
-
   if (MEDIA_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
-    if (message.toLowerCase().includes("main pic") || message.toLowerCase().includes("pic field")) {
+    if (
+      message.toLowerCase().includes("main pic") ||
+      message.toLowerCase().includes("pic field")
+    ) {
       return { mainPic: message };
     }
 
@@ -105,28 +69,8 @@ export function parseProjectApiError(error: ApiError): ProjectFormFieldErrors {
       return { title: message };
     }
 
-    if (lower.includes("client name")) {
-      return { clientName: message };
-    }
-
-    if (lower.includes("client region")) {
-      return { clientRegion: message };
-    }
-
     if (lower.includes("description")) {
       return { description: message };
-    }
-
-    if (lower.includes("actual project date") || lower.includes("date")) {
-      return { actualProjectDate: message };
-    }
-
-    if (lower.includes("status")) {
-      return { status: message };
-    }
-
-    if (lower.includes("service")) {
-      return { serviceId: message };
     }
 
     if (

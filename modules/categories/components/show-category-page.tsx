@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 import { CategorySubcategoriesSection } from "@/modules/categories/components/category-subcategories-section";
+import { CategoryProductsSection } from "@/modules/products/components/category-products-section";
 import { useDeleteCategory } from "@/modules/categories/hooks/use-delete-category";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
 import { getCategoryPicUrl } from "@/modules/categories/lib/category-media-mappers";
 import type { CategoryDetail } from "@/modules/categories/types";
+import type { NestedProductsListData } from "@/modules/products/types";
 import type { SubcategoryListData } from "@/modules/subcategories/types";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
@@ -18,6 +20,8 @@ interface ShowCategoryPageProps {
   category: CategoryDetail;
   subcategories: SubcategoryListData;
   subcategoriesLoadError?: boolean;
+  products: NestedProductsListData;
+  productsLoadError?: boolean;
 }
 
 type FeedbackState = {
@@ -29,6 +33,8 @@ export function ShowCategoryPage({
   category,
   subcategories,
   subcategoriesLoadError = false,
+  products,
+  productsLoadError = false,
 }: ShowCategoryPageProps) {
   const router = useRouter();
   const { canWrite } = usePermissions();
@@ -125,24 +131,16 @@ export function ShowCategoryPage({
             <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Title
             </dt>
-            <dd className="text-base font-medium text-foreground">
-              {category.title}
-            </dd>
+            <dd className="text-base font-medium text-foreground">{category.title}</dd>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <dt className="text-sm font-medium text-muted-foreground">
-              Description
-            </dt>
+            <dt className="text-sm font-medium text-muted-foreground">Description</dt>
             <dd className="text-sm leading-relaxed text-foreground">
               {hasDescription ? (
-                <span className="whitespace-pre-wrap">
-                  {category.description}
-                </span>
+                <span className="whitespace-pre-wrap">{category.description}</span>
               ) : (
-                <span className="text-muted-foreground">
-                  No description available from the API.
-                </span>
+                <span className="text-muted-foreground">No description available from the API.</span>
               )}
             </dd>
           </div>
@@ -164,9 +162,7 @@ export function ShowCategoryPage({
             />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No main thumbnail uploaded.
-          </p>
+          <p className="text-sm text-muted-foreground">No main thumbnail uploaded.</p>
         )}
       </Card>
 
@@ -174,6 +170,12 @@ export function ShowCategoryPage({
         categoryId={category.id}
         data={subcategories}
         loadError={subcategoriesLoadError}
+      />
+
+      <CategoryProductsSection
+        categoryId={category.id}
+        data={products}
+        loadError={productsLoadError}
       />
 
       <ConfirmDialog

@@ -43,6 +43,9 @@ export function ProductCard({ product, onDelete }: ProductCardProps) {
             <h3 className="line-clamp-2 text-base font-semibold leading-snug text-white">
               {product.title}
             </h3>
+            {product.category ? (
+              <p className="mt-0.5 text-xs text-white/75">{product.category.title}</p>
+            ) : null}
           </div>
         </Link>
 
