@@ -1,28 +1,53 @@
 import type { MediaItem } from "@/modules/media/types";
 
+export interface ProductCategoryRef {
+  id: number;
+  title: string;
+  description?: string | null;
+  pic?: string | null;
+}
+
+export interface ProductSubCategoryRef {
+  id: number;
+  title: string;
+  description?: string | null;
+  pic?: string | null;
+}
+
 export interface Product {
   id: number;
   title: string;
   description: string | null;
   pic?: string | null;
+  category?: ProductCategoryRef | null;
+  subCategories?: ProductSubCategoryRef[];
   created_at?: string;
   updated_at?: string;
 }
 
 export interface ProductMedia {
   id: number;
+  name?: string;
   file_name: string;
+  type?: "image" | "video" | "file" | string;
   mime_type: string;
   size: number;
   url: string;
   role: "main" | "gallery" | string;
   order: number;
   created_at?: string;
+  updated_at?: string;
 }
 
-export interface ProductDetail extends Product {
+export interface ProductDetail {
+  id: number;
+  title: string;
+  description: string | null;
+  category?: ProductCategoryRef | null;
+  subCategories?: ProductSubCategoryRef[];
   media: ProductMedia[];
-  pagination?: ProductPaginationMeta;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductShowData {
@@ -44,15 +69,35 @@ export interface ProductListData {
   pagination: ProductPaginationMeta;
 }
 
+export interface NestedProductsListData {
+  products: Product[];
+  pagination: ProductPaginationMeta;
+}
+
+export interface CategoryProductsData {
+  category: ProductCategoryRef;
+  products: Product[];
+  pagination: ProductPaginationMeta;
+}
+
+export interface SubCategoryProductsData {
+  subCategory: ProductSubCategoryRef & {
+    category?: ProductCategoryRef;
+  };
+  products: Product[];
+  pagination: ProductPaginationMeta;
+}
+
 export interface ProductListParams {
-  search?: string;
   page?: number;
   per_page?: number;
 }
 
-export interface ProductShowParams {
-  per_page?: number;
-  page?: number;
+export interface ProductSearchParams extends ProductListParams {
+  title?: string;
+  description?: string;
+  categoryIds?: Array<number | string> | string;
+  subCategoryIds?: Array<number | string> | string;
 }
 
 export type MainPicAction = "none" | "delete" | "upload";
@@ -60,11 +105,24 @@ export type MainPicAction = "none" | "delete" | "upload";
 export interface UpdateProductInput {
   id: number;
   title: string;
-  description?: string;
+  description: string;
+  subCategoryIds: number[];
   initialTitle: string;
-  initialDescription?: string;
+  initialDescription: string;
+  initialSubCategoryIds: number[];
   mainPicAction: MainPicAction;
   mainPicFile?: File;
   galleryItems: MediaItem[];
   galleryChanged: boolean;
+}
+
+export interface CategoryOption {
+  id: number;
+  title: string;
+}
+
+export interface SubCategoryOption {
+  id: number;
+  title: string;
+  categoryId: number;
 }

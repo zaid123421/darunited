@@ -1,7 +1,5 @@
 import type { MediaItem } from "@/modules/media/types";
 
-export type ProjectStatus = "draft" | "visible" | "hidden";
-
 export type ProjectsViewMode = "grid" | "list" | "details";
 
 export interface ProjectMedia {
@@ -19,26 +17,17 @@ export interface ProjectMedia {
 export interface ProjectListItem {
   id: number;
   title: string;
-  clientName: string;
-  service: string;
-  status: ProjectStatus;
-  actualProjectDate: string;
+  description: string | null;
   mainImageUrl: string | null;
 }
 
 export interface ProjectDetail {
   id: number;
   title: string;
-  clientName: string;
-  clientRegion: string;
-  actualProjectDate: string;
   description: string;
-  status: ProjectStatus;
-  service: string;
   created_at?: string;
   updated_at?: string;
   media: ProjectMedia[];
-  pagination?: ProjectPaginationMeta;
 }
 
 export interface ProjectShowData {
@@ -68,16 +57,6 @@ export interface ProjectListParams {
 export interface ProjectSearchParams extends ProjectListParams {
   title?: string;
   description?: string;
-  clientName?: string;
-  serviceId?: number | string;
-  actualProjectDate?: string;
-  fromDate?: string;
-  toDate?: string;
-}
-
-export interface ProjectShowParams {
-  per_page?: number;
-  page?: number;
 }
 
 export type MainPicAction = "none" | "delete" | "upload";
@@ -85,26 +64,11 @@ export type MainPicAction = "none" | "delete" | "upload";
 export interface UpdateProjectInput {
   id: number;
   title: string;
-  clientName: string;
-  clientRegion: string;
-  actualProjectDate: string;
   description: string;
-  status: ProjectStatus;
-  serviceId: number;
   initialTitle: string;
-  initialClientName: string;
-  initialClientRegion: string;
-  initialActualProjectDate: string;
   initialDescription: string;
-  initialStatus: ProjectStatus;
-  initialServiceId: number;
   mainPicAction: MainPicAction;
   mainPicFile?: File;
   galleryItems: MediaItem[];
   galleryChanged: boolean;
-}
-
-export interface ServiceOption {
-  id: number;
-  title: string;
 }

@@ -5,10 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { ServiceMainPicSection } from "@/modules/services/components/service-main-pic-section";
-import { ServiceMediaSection } from "@/modules/services/components/service-media-section";
-import { useGalleryEdit } from "@/modules/services/hooks/use-gallery-edit";
-import { PROJECT_FORM_DEFAULTS, PROJECT_STATUSES } from "@/modules/projects/constants";
+import { useGalleryEdit } from "@/modules/media/hooks/use-gallery-edit";
+import { EntityMainPicSection } from "@/modules/media/components/entity-main-pic-section";
+import { EntityMediaSection } from "@/modules/media/components/entity-media-section";
+import { PROJECT_FORM_DEFAULTS } from "@/modules/projects/constants";
 import { useCreateProject } from "@/modules/projects/hooks/use-create-project";
 import { buildProjectFormData } from "@/modules/projects/lib/build-project-form-data";
 import { parseProjectApiError } from "@/modules/projects/lib/parse-project-api-error";
@@ -17,30 +17,24 @@ import {
   type ProjectFormSubmitValues,
   type ProjectFormValues,
 } from "@/modules/projects/schemas/project.schema";
-import type { ServiceOption } from "@/modules/projects/types";
 import {
   INVALID_IMAGE_TYPE_MESSAGE,
   isAllowedImageFile,
 } from "@/modules/media/lib/media-file-validation";
+import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
-import { Select } from "@/shared/components/ui/select";
 import { cn } from "@/shared/lib/cn";
 import { inputFocusRingClass } from "@/shared/lib/input-focus";
 import { ApiError } from "@/shared/types/global-response";
 
-interface AddProjectPageProps {
-  services: ServiceOption[];
-}
-
-export function AddProjectPage({ services }: AddProjectPageProps) {
+export function AddProjectPage() {
   const createProject = useCreateProject();
   const [mainPicFile, setMainPicFile] = useState<File | null>(null);
   const [mainPicPreview, setMainPicPreview] = useState<string | null>(null);
   const [mainPicError, setMainPicError] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [generalError, setGeneralError] = useState<string | null>(null);
 
   const {
     media: galleryMedia,
@@ -64,18 +58,6 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
 
   const description = watch("description");
   const title = watch("title");
-  const status = watch("status");
-  const serviceId = watch("serviceId");
-
-  const serviceOptions = services.map((service) => ({
-    label: service.title,
-    value: String(service.id),
-  }));
-
-  const statusOptions = PROJECT_STATUSES.map((item) => ({
-    label: item.label,
-    value: item.value,
-  }));
 
   useEffect(() => {
     if (errors.title?.type === "server") {
@@ -133,8 +115,7 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
 
   const handleApiError = (error: unknown) => {
     if (!(error instanceof ApiError)) {
-      setGeneralError("Something went wrong. Please try again.");
-      return;
+      return; // hook already toasted
     }
 
     const parsed = parseProjectApiError(error);
@@ -143,31 +124,8 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
       setError("title", { type: "server", message: parsed.title });
     }
 
-    if (parsed.clientName) {
-      setError("clientName", { type: "server", message: parsed.clientName });
-    }
-
-    if (parsed.clientRegion) {
-      setError("clientRegion", { type: "server", message: parsed.clientRegion });
-    }
-
-    if (parsed.serviceId) {
-      setError("serviceId", { type: "server", message: parsed.serviceId });
-    }
-
     if (parsed.description) {
       setError("description", { type: "server", message: parsed.description });
-    }
-
-    if (parsed.actualProjectDate) {
-      setError("actualProjectDate", {
-        type: "server",
-        message: parsed.actualProjectDate,
-      });
-    }
-
-    if (parsed.status) {
-      setError("status", { type: "server", message: parsed.status });
     }
 
     if (parsed.mainPic) {
@@ -179,14 +137,13 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
     }
 
     if (parsed.general) {
-      setGeneralError(parsed.general);
+      toast.error(parsed.general);
     }
   };
 
   const onSubmit = (values: ProjectFormSubmitValues) => {
     setMediaError(null);
     setMainPicError(null);
-    setGeneralError(null);
     clearErrors();
     createProject.reset();
 
@@ -199,14 +156,14 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
       return;
     }
 
+    if (!mainPicFile) {
+      setMainPicError("A main image is required.");
+      return;
+    }
+
     const formData = buildProjectFormData({
       title: values.title,
-      clientName: values.clientName,
-      clientRegion: values.clientRegion,
-      actualProjectDate: values.actualProjectDate,
       description: values.description,
-      status: values.status,
-      serviceId: values.serviceId,
       mainPicFile,
       galleryMedia,
     });
@@ -215,18 +172,6 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
       onError: handleApiError,
     });
   };
-
-  const hasFieldErrors =
-    errors.title ||
-    errors.clientName ||
-    errors.clientRegion ||
-    errors.serviceId ||
-    errors.description ||
-    errors.actualProjectDate ||
-    errors.status;
-
-  const showGeneralError =
-    generalError && !hasFieldErrors && !mediaError && !mainPicError;
 
   return (
     <div className="flex min-h-full w-full flex-col pb-24 sm:pb-28">
@@ -239,9 +184,7 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
           Back to Projects
         </Link>
 
-        <h1 className="page-title mt-4">
-          Add Project
-        </h1>
+        <h1 className="page-title mt-4">Add Project</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Create a new portfolio project
         </p>
@@ -274,63 +217,12 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input
-                label="Client Name"
-                placeholder="e.g. Dartic"
-                className="h-12 rounded-xl bg-input"
-                error={errors.clientName?.message}
-                {...register("clientName")}
-              />
-              <Input
-                label="Client Region"
-                placeholder="e.g. Egypt"
-                className="h-12 rounded-xl bg-input"
-                error={errors.clientRegion?.message}
-                {...register("clientRegion")}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Select
-                label="Service"
-                placeholder="Select a service"
-                options={serviceOptions}
-                value={serviceId ? String(serviceId) : ""}
-                onValueChange={(value) =>
-                  setValue("serviceId", Number(value), {
-                    shouldValidate: true,
-                  })
-                }
-                error={errors.serviceId?.message}
-              />
-              <Select
-                label="Status"
-                options={statusOptions}
-                value={status}
-                onValueChange={(value) =>
-                  setValue("status", value as ProjectFormValues["status"], {
-                    shouldValidate: true,
-                  })
-                }
-                error={errors.status?.message}
-              />
-            </div>
-
-            <Input
-              label="Project Date"
-              type="date"
-              className="h-12 rounded-xl bg-input"
-              error={errors.actualProjectDate?.message}
-              {...register("actualProjectDate")}
-            />
-
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="project-description"
                 className="text-sm font-medium text-muted-foreground"
               >
-                Description
+                Description <span className="text-destructive">*</span>
               </label>
               <textarea
                 id="project-description"
@@ -348,22 +240,20 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
                 }
               />
               {errors.description?.message ? (
-                <p className="flex items-center gap-1 text-xs text-destructive">
-                  {errors.description.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.description.message}</p>
               ) : null}
             </div>
           </div>
         </Card>
 
-        <ServiceMainPicSection
+        <EntityMainPicSection
           previewUrl={mainPicPreview}
           onSelectFile={handleMainPicSelect}
           onRemove={handleMainPicRemove}
           error={mainPicError ?? undefined}
         />
 
-        <ServiceMediaSection
+        <EntityMediaSection
           title="Gallery Media"
           media={galleryMedia}
           mainIndex={-1}
@@ -371,20 +261,9 @@ export function AddProjectPage({ services }: AddProjectPageProps) {
           onRemoveAt={removeGalleryAt}
           onReorderMedia={reorderGallery}
           showMainBadge={false}
+          error={mediaError ?? undefined}
           tipText="Drag to reorder gallery images and videos. The main thumbnail is managed separately above."
         />
-
-        {mediaError ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {mediaError}
-          </div>
-        ) : null}
-
-        {showGeneralError ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {generalError}
-          </div>
-        ) : null}
       </form>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/40 backdrop-blur-md lg:left-[260px]">

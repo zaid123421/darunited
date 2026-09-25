@@ -5,8 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { useGalleryEdit } from "@/modules/media/hooks/use-gallery-edit";
+import { EntityMainPicSection } from "@/modules/media/components/entity-main-pic-section";
+import { EntityMediaSection } from "@/modules/media/components/entity-media-section";
 import { useUpdateProduct } from "@/modules/products/hooks/use-update-product";
+import { ProductSubcategoryPicker } from "@/modules/products/components/product-subcategory-picker";
 import {
   getGalleryFromProduct,
   getMainPicFromProduct,
@@ -21,31 +25,47 @@ import {
   INVALID_IMAGE_TYPE_MESSAGE,
   isAllowedImageFile,
 } from "@/modules/media/lib/media-file-validation";
-import type { MainPicAction, ProductDetail } from "@/modules/products/types";
-import { EntityMainPicSection } from "@/modules/media/components/entity-main-pic-section";
-import { EntityMediaSection } from "@/modules/media/components/entity-media-section";
-import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
+import type {
+  CategoryOption,
+  MainPicAction,
+  ProductDetail,
+  SubCategoryOption,
+} from "@/modules/products/types";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
+import { Select } from "@/shared/components/ui/select";
 import { cn } from "@/shared/lib/cn";
 import { inputFocusRingClass } from "@/shared/lib/input-focus";
 import { ApiError } from "@/shared/types/global-response";
 
 interface EditProductPageProps {
   product: ProductDetail;
+  categories: CategoryOption[];
+  subCategories: SubCategoryOption[];
 }
 
-export function EditProductPage({ product }: EditProductPageProps) {
+function sameIds(a: number[], b: number[]) {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort((x, y) => x - y);
+  const sortedB = [...b].sort((x, y) => x - y);
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+export function EditProductPage({
+  product,
+  categories,
+  subCategories,
+}: EditProductPageProps) {
   const initialMainPic = getMainPicFromProduct(product);
   const initialGallery = useMemo(() => getGalleryFromProduct(product), [product]);
+  const initialSubCategoryIds = useMemo(
+    () => product.subCategories?.map((sc) => sc.id) ?? [],
+    [product],
+  );
+  const initialCategoryId = product.category?.id ?? 0;
 
-  const updateProduct = useUpdateProduct({
-    onSuccess: () => {
-      setSuccessMessage("Product updated successfully.");
-      setGeneralError(null);
-    },
-  });
+  const updateProduct = useUpdateProduct();
 
   const {
     media: galleryMedia,
@@ -63,8 +83,6 @@ export function EditProductPage({ product }: EditProductPageProps) {
   const [mainPicRemoved, setMainPicRemoved] = useState(false);
   const [mainPicError, setMainPicError] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [generalError, setGeneralError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
     register,
@@ -79,11 +97,20 @@ export function EditProductPage({ product }: EditProductPageProps) {
     defaultValues: {
       title: product.title,
       description: product.description ?? "",
+      categoryId: initialCategoryId,
+      subCategoryIds: initialSubCategoryIds,
     },
   });
 
   const description = watch("description");
   const title = watch("title");
+  const categoryId = watch("categoryId") as number;
+  const subCategoryIds = (watch("subCategoryIds") as number[]) ?? [];
+
+  const categoryOptions = categories.map((cat) => ({
+    label: cat.title,
+    value: String(cat.id),
+  }));
 
   useEffect(() => {
     resetGallery(initialGallery);
@@ -92,7 +119,6 @@ export function EditProductPage({ product }: EditProductPageProps) {
     setMainPicRemoved(false);
     setMainPicError(null);
     setMediaError(null);
-    setGeneralError(null);
   }, [initialGallery, initialMainPic?.url, resetGallery, product.id]);
 
   useEffect(() => {
@@ -121,19 +147,14 @@ export function EditProductPage({ product }: EditProductPageProps) {
 
   const hasInfoChanges =
     title.trim() !== product.title.trim() ||
-    (description?.trim() || "") !== (product.description?.trim() || "");
+    (description?.trim() || "") !== (product.description?.trim() || "") ||
+    !sameIds(subCategoryIds, initialSubCategoryIds);
 
   const hasChanges = hasInfoChanges || hasMainPicChanges || galleryChanged;
 
   const resolveMainPicAction = (): MainPicAction => {
-    if (mainPicFile) {
-      return "upload";
-    }
-
-    if (initialMainPic && mainPicRemoved) {
-      return "delete";
-    }
-
+    if (mainPicFile) return "upload";
+    if (initialMainPic && mainPicRemoved) return "delete";
     return "none";
   };
 
@@ -151,7 +172,6 @@ export function EditProductPage({ product }: EditProductPageProps) {
     setMainPicPreview(URL.createObjectURL(file));
     setMainPicRemoved(false);
     setMainPicError(null);
-    setSuccessMessage(null);
   };
 
   const handleMainPicRemove = () => {
@@ -163,7 +183,6 @@ export function EditProductPage({ product }: EditProductPageProps) {
     setMainPicFile(null);
     setMainPicRemoved(true);
     setMainPicError(null);
-    setSuccessMessage(null);
   };
 
   const handleGalleryAddFiles = (files: FileList) => {
@@ -171,22 +190,26 @@ export function EditProductPage({ product }: EditProductPageProps) {
 
     if (result.invalidImageMessage) {
       setMediaError(result.invalidImageMessage);
-      return;
     }
-
-    setSuccessMessage(null);
   };
 
   const handleApiError = (error: unknown) => {
     if (!(error instanceof ApiError)) {
-      setGeneralError("Something went wrong. Please try again.");
-      return;
+      return; // hook already toasted
     }
 
     const parsed = parseProductApiError(error);
 
     if (parsed.title) {
       setError("title", { type: "server", message: parsed.title });
+    }
+
+    if (parsed.description) {
+      setError("description", { type: "server", message: parsed.description });
+    }
+
+    if (parsed.subCategoryIds) {
+      setError("subCategoryIds", { type: "server", message: parsed.subCategoryIds });
     }
 
     if (parsed.mainPic) {
@@ -198,19 +221,17 @@ export function EditProductPage({ product }: EditProductPageProps) {
     }
 
     if (parsed.general) {
-      setGeneralError(parsed.general);
+      toast.error(parsed.general);
     }
   };
 
   const onSubmit = (values: ProductFormSubmitValues) => {
     setMediaError(null);
     setMainPicError(null);
-    setGeneralError(null);
-    setSuccessMessage(null);
-    clearErrors("title");
+    clearErrors();
 
     if (!hasChanges) {
-      setGeneralError("No changes to save.");
+      toast.error("No changes to save.");
       return;
     }
 
@@ -228,8 +249,10 @@ export function EditProductPage({ product }: EditProductPageProps) {
         id: product.id,
         title: values.title,
         description: values.description,
+        subCategoryIds: values.subCategoryIds,
         initialTitle: product.title,
-        initialDescription: product.description ?? undefined,
+        initialDescription: product.description ?? "",
+        initialSubCategoryIds,
         mainPicAction: resolveMainPicAction(),
         mainPicFile: mainPicFile ?? undefined,
         galleryItems: galleryMedia,
@@ -241,9 +264,11 @@ export function EditProductPage({ product }: EditProductPageProps) {
     );
   };
 
-  const titleError = errors.title?.message;
-  const showGeneralError =
-    generalError && !titleError && !mediaError && !mainPicError;
+  // Derive error message for subCategoryIds
+  const subCategoryError =
+    (errors.subCategoryIds as unknown as { message?: string } | undefined)?.message ??
+    (errors.subCategoryIds as unknown as { root?: { message?: string } } | undefined)?.root
+      ?.message;
 
   return (
     <div className="flex min-h-full w-full flex-col pb-24 sm:pb-28">
@@ -256,23 +281,9 @@ export function EditProductPage({ product }: EditProductPageProps) {
           Back to Products
         </Link>
 
-        <h1 className="page-title mt-4">
-          Edit Product
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Update product details and media
-        </p>
+        <h1 className="page-title mt-4">Edit Product</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Update product details and media</p>
       </div>
-
-      {successMessage ? (
-        <div className="mb-4 sm:mb-5">
-          <FeedbackBanner
-            type="success"
-            message={successMessage}
-            onDismiss={() => setSuccessMessage(null)}
-          />
-        </div>
-      ) : null}
 
       <form
         id="edit-product-form"
@@ -285,6 +296,7 @@ export function EditProductPage({ product }: EditProductPageProps) {
           </CardTitle>
 
           <div className="flex flex-col gap-4 sm:gap-6">
+            {/* Title */}
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="product-title"
@@ -296,11 +308,12 @@ export function EditProductPage({ product }: EditProductPageProps) {
                 id="product-title"
                 placeholder="e.g. Professional Web Design"
                 className="h-12 rounded-xl bg-input"
-                error={titleError}
+                error={errors.title?.message}
                 {...register("title")}
               />
             </div>
 
+            {/* Description */}
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="product-description"
@@ -324,10 +337,39 @@ export function EditProductPage({ product }: EditProductPageProps) {
                 }
               />
               {errors.description?.message ? (
-                <p className="flex items-center gap-1 text-xs text-destructive">
-                  {errors.description.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.description.message}</p>
               ) : null}
+            </div>
+
+            {/* Category */}
+            <Select
+              label="Category"
+              placeholder="Select a category"
+              options={categoryOptions}
+              value={categoryId > 0 ? String(categoryId) : ""}
+              onValueChange={(value) => {
+                setValue("categoryId", Number(value), { shouldValidate: true });
+                setValue("subCategoryIds", [], { shouldValidate: false });
+              }}
+              error={
+                (errors.categoryId as unknown as { message?: string } | undefined)?.message
+              }
+            />
+
+            {/* Subcategories */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Subcategories <span className="text-destructive">*</span>
+              </label>
+              <ProductSubcategoryPicker
+                subCategories={subCategories}
+                selectedCategoryId={categoryId ?? 0}
+                selectedIds={subCategoryIds}
+                onChange={(ids) =>
+                  setValue("subCategoryIds", ids, { shouldValidate: true })
+                }
+                error={subCategoryError}
+              />
             </div>
           </div>
         </Card>
@@ -351,12 +393,6 @@ export function EditProductPage({ product }: EditProductPageProps) {
           showMainBadge={false}
           tipText="Drag to reorder gallery items. You can add new media, but existing items cannot be removed."
         />
-
-        {showGeneralError ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {generalError}
-          </div>
-        ) : null}
       </form>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/40 backdrop-blur-md lg:left-[260px]">

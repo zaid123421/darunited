@@ -1,21 +1,26 @@
-export function buildProjectShowBasePath(id: number | string) {
-  return `/dashboard/projects/${id}`;
+export function buildProductShowBasePath(id: number | string) {
+  return `/dashboard/products/${id}`;
 }
 
-const PROJECT_FILTER_KEYS = ["title", "description"] as const;
+const PRODUCT_FILTER_KEYS = [
+  "title",
+  "description",
+  "categoryIds",
+  "subCategoryIds",
+] as const;
 
-export function hasActiveProjectFilters(
+export function hasActiveProductFilters(
   params: Record<string, string | undefined>,
 ) {
-  return PROJECT_FILTER_KEYS.some((key) => Boolean(params[key]?.trim()));
+  return PRODUCT_FILTER_KEYS.some((key) => Boolean(params[key]?.trim()));
 }
 
-export function buildProjectsListBasePath(
+export function buildProductsListBasePath(
   params: Record<string, string | undefined>,
 ) {
   const search = new URLSearchParams();
 
-  PROJECT_FILTER_KEYS.forEach((key) => {
+  PRODUCT_FILTER_KEYS.forEach((key) => {
     const value = params[key]?.trim();
     if (value) {
       search.set(key, value);
@@ -26,7 +31,7 @@ export function buildProjectsListBasePath(
   return query ? `?${query}` : "";
 }
 
-export function buildProjectsListQuery(
+export function buildProductsListQuery(
   params: Record<string, string | undefined>,
   page: number,
 ) {
@@ -36,7 +41,7 @@ export function buildProjectsListQuery(
     search.set("page", String(page));
   }
 
-  PROJECT_FILTER_KEYS.forEach((key) => {
+  PRODUCT_FILTER_KEYS.forEach((key) => {
     const value = params[key]?.trim();
     if (value) {
       search.set(key, value);

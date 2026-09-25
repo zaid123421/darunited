@@ -8,13 +8,21 @@ function buildMainPicFormData(file: File) {
   return formData;
 }
 
-function hasInfoChanges(input: UpdateProductInput) {
-  const normalizedDescription = input.description?.trim() || undefined;
-  const normalizedInitialDescription = input.initialDescription?.trim() || undefined;
+function sameIdSet(left: number[], right: number[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
 
+  const sortedLeft = [...left].sort((a, b) => a - b);
+  const sortedRight = [...right].sort((a, b) => a - b);
+  return sortedLeft.every((value, index) => value === sortedRight[index]);
+}
+
+function hasInfoChanges(input: UpdateProductInput) {
   return (
     input.title.trim() !== input.initialTitle.trim() ||
-    normalizedDescription !== normalizedInitialDescription
+    input.description.trim() !== input.initialDescription.trim() ||
+    !sameIdSet(input.subCategoryIds, input.initialSubCategoryIds)
   );
 }
 
@@ -37,7 +45,7 @@ export const productsClientApi = {
     clientUpload<null>(`/api/admin/products/upload-main-pic/${id}`, formData),
 
   syncGallery: (id: number | string, formData: FormData) =>
-    clientUpload<null>(`/api/admin/products/sync-gallery/${id}`, formData),
+    clientUpload<null>(`/api/admin/products/edit-media/${id}`, formData),
 
   delete: (id: number | string) =>
     clientFetch<null>(`/api/admin/products/${id}`, {
@@ -48,7 +56,8 @@ export const productsClientApi = {
     if (hasInfoChanges(input)) {
       await productsClientApi.update(input.id, {
         title: input.title.trim(),
-        description: input.description?.trim() || null,
+        description: input.description.trim(),
+        subCategoryIds: input.subCategoryIds,
       });
     }
 

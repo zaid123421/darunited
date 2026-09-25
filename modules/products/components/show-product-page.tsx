@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronLeft, Pencil, Trash2, Video } from "lucide-react";
 import { useDeleteProduct } from "@/modules/products/hooks/use-delete-product";
 import { usePermissions } from "@/modules/auth/hooks/use-permissions";
@@ -11,62 +11,31 @@ import {
   getMainPicFromProduct,
   isVideoMedia,
 } from "@/modules/products/lib/product-media-mappers";
-import type { ProductDetail, ProductMedia } from "@/modules/products/types";
+import type { ProductDetail } from "@/modules/products/types";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
-import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
-import { Pagination } from "@/shared/components/ui/pagination";
 
 interface ShowProductPageProps {
   product: ProductDetail;
-  mainPic?: ProductMedia;
-  mediaBasePath: string;
 }
 
-type FeedbackState = {
-  type: "success" | "error";
-  message: string;
-};
-
-export function ShowProductPage({
-  product,
-  mainPic,
-  mediaBasePath,
-}: ShowProductPageProps) {
+export function ShowProductPage({ product }: ShowProductPageProps) {
   const router = useRouter();
   const { canWrite } = usePermissions();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
-  const resolvedMainPic = mainPic ?? getMainPicFromProduct(product);
+  const mainPic = getMainPicFromProduct(product);
   const galleryItems = getGalleryFromProduct(product);
-  const pagination = product.pagination;
 
   const deleteProduct = useDeleteProduct({
     onSuccess: () => {
       setShowDeleteDialog(false);
       router.push("/dashboard/products");
     },
-    onError: (error) => {
+    onError: () => {
       setShowDeleteDialog(false);
-      setFeedback({
-        type: "error",
-        message: error.message || "Failed to delete product. Please try again.",
-      });
     },
   });
-
-  useEffect(() => {
-    if (!feedback) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      setFeedback(null);
-    }, 5000);
-
-    return () => window.clearTimeout(timeout);
-  }, [feedback]);
 
   const handleDeleteConfirm = () => {
     deleteProduct.mutate(product.id);
@@ -87,9 +56,7 @@ export function ShowProductPage({
           </Link>
 
           <h1 className="page-title mt-4">{product.title}</h1>
-          <p className="page-subtitle mt-1">
-            Product details and media gallery
-          </p>
+          <p className="page-subtitle mt-1">Product details and media gallery</p>
         </div>
 
         {canWrite ? (
@@ -115,14 +82,6 @@ export function ShowProductPage({
         ) : null}
       </div>
 
-      {feedback ? (
-        <FeedbackBanner
-          type={feedback.type}
-          message={feedback.message}
-          onDismiss={() => setFeedback(null)}
-        />
-      ) : null}
-
       <Card className="p-4 sm:p-6">
         <CardTitle className="mb-4 text-sm font-semibold sm:mb-6 sm:text-base">
           Product Information
@@ -135,6 +94,41 @@ export function ShowProductPage({
             </dt>
             <dd className="text-base font-medium text-foreground">{product.title}</dd>
           </div>
+
+          {product.category ? (
+            <div className="flex flex-col gap-1.5">
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Category
+              </dt>
+              <dd className="text-sm text-foreground">
+                <Link
+                  href={`/dashboard/categories/${product.category.id}`}
+                  className="transition-colors hover:text-primary"
+                >
+                  {product.category.title}
+                </Link>
+              </dd>
+            </div>
+          ) : null}
+
+          {product.subCategories && product.subCategories.length > 0 ? (
+            <div className="flex flex-col gap-1.5">
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Subcategories
+              </dt>
+              <dd className="flex flex-wrap gap-2">
+                {product.subCategories.map((sc) => (
+                  <Link
+                    key={sc.id}
+                    href={`/dashboard/subcategories/${sc.id}`}
+                    className="rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-medium transition-colors hover:border-primary/50 hover:text-primary"
+                  >
+                    {sc.title}
+                  </Link>
+                ))}
+              </dd>
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-1.5">
             <dt className="text-sm font-medium text-muted-foreground">Description</dt>
@@ -154,11 +148,11 @@ export function ShowProductPage({
           Main Thumbnail
         </CardTitle>
 
-        {resolvedMainPic ? (
+        {mainPic ? (
           <div className="aspect-video w-full max-w-xl overflow-hidden rounded-xl border border-border bg-muted">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={resolvedMainPic.url}
+              src={mainPic.url}
               alt={`${product.title} main thumbnail`}
               className="h-full w-full object-cover"
             />
@@ -210,21 +204,6 @@ export function ShowProductPage({
               ))}
           </div>
         )}
-
-        {pagination && pagination.total > 0 ? (
-          <div className="mt-6 border-t border-border pt-6">
-            <Pagination
-              currentPage={pagination.current_page}
-              lastPage={pagination.last_page}
-              total={pagination.total}
-              from={pagination.from}
-              to={pagination.to}
-              hasMore={pagination.has_more}
-              basePath={mediaBasePath}
-              itemLabel="media items"
-            />
-          </div>
-        ) : null}
       </Card>
 
       <ConfirmDialog
