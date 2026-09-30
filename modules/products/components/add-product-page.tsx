@@ -261,7 +261,7 @@ export function AddProductPage({ categories, subCategories }: AddProductPageProp
         />
       </form>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/40 backdrop-blur-md lg:left-[260px]">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/40 backdrop-blur-md transition-[left] duration-200 lg:left-[var(--dashboard-sidebar-offset)]">
         <div className="flex w-full flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-4">
           <Link
             href="/dashboard/products"

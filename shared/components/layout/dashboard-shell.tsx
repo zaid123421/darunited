@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { SessionBootstrap } from "@/shared/components/auth/session-bootstrap";
 import { NotificationProvider } from "@/modules/notifications/components/notification-provider";
 import { NOTIFICATIONS_ENABLED } from "@/modules/notifications/constants";
@@ -40,7 +40,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   const shell = (
-    <div className="flex min-h-screen bg-background">
+    <div
+      className="flex min-h-screen bg-background"
+      style={
+        {
+          "--dashboard-sidebar-offset": sidebarOpen ? "260px" : "0px",
+        } as CSSProperties
+      }
+    >
       {sidebarOpen ? (
         <button
           type="button"
