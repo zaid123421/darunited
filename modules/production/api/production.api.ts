@@ -1,9 +1,9 @@
 import { serverFetch } from "@/shared/lib/api/server";
 import type {
-  AboutUsListData,
-  AboutUsListParams,
-  AboutUsSectionShowData,
-} from "@/modules/about/types";
+  ProductionListData,
+  ProductionListParams,
+  ProductionSectionShowData,
+} from "@/modules/production/types";
 
 type QueryValue = string | number | boolean | null | undefined;
 
@@ -22,17 +22,17 @@ function buildQuery(params: Record<string, QueryValue> = {}) {
   return query ? `?${query}` : "";
 }
 
-export const aboutApi = {
-  list: (params?: AboutUsListParams) =>
-    serverFetch<AboutUsListData>(
-      `/admin/about-us/show-all${buildQuery((params ?? {}) as Record<string, QueryValue>)}`,
+export const productionApi = {
+  list: (params?: ProductionListParams) =>
+    serverFetch<ProductionListData>(
+      `/admin/production/show-all${buildQuery((params ?? {}) as Record<string, QueryValue>)}`,
     ),
 
   getById: (id: number | string) =>
-    serverFetch<AboutUsSectionShowData>(`/admin/about-us/show/${id}`),
+    serverFetch<ProductionSectionShowData>(`/admin/production/show/${id}`),
 
   delete: (id: number | string) =>
-    serverFetch<null>(`/admin/about-us/${id}`, {
+    serverFetch<null>(`/admin/production/${id}`, {
       method: "DELETE",
     }),
 };

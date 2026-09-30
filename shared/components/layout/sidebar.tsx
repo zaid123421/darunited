@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ChevronDown,
+  Factory,
   Folder,
   FolderTree,
   Layers,
@@ -106,6 +107,12 @@ const navSections: NavSection[] = [
         href: "/dashboard/about",
         label: "About Us",
         icon: User,
+      },
+      {
+        type: "link",
+        href: "/dashboard/production",
+        label: "Production",
+        icon: Factory,
       },
       {
         type: "link",
