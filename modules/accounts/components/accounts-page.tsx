@@ -14,6 +14,7 @@ import {
 } from "@/modules/accounts/schemas/account.schema";
 import { AccountStatusControl } from "@/modules/accounts/components/account-status-control";
 import type { Account, AccountStatus } from "@/modules/accounts/types";
+import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { FeedbackBanner } from "@/shared/components/ui/feedback-banner";
@@ -29,9 +30,7 @@ export function AccountsPage() {
   const { data, isLoading, isError, error, refetch, isFetching } = useAccounts();
   const createAccount = useCreateAccount();
   const updateStatus = useUpdateAccountStatus();
-  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [statusSuccess, setStatusSuccess] = useState<string | null>(null);
-  const [createError, setCreateError] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
 
@@ -43,18 +42,16 @@ export function AccountsPage() {
   const accounts = data?.accounts ?? [];
 
   const onCreate = (values: CreateAccountFormValues) => {
-    setCreateSuccess(null);
-    setCreateError(null);
     createAccount.mutate(values, {
       onSuccess: (response) => {
-        setCreateSuccess(
+        toast.success(
           response.message ||
             "Invitation sent. The analyst can activate from their email link.",
         );
         createForm.reset({ fullName: "", email: "" });
       },
       onError: (err) => {
-        setCreateError(
+        toast.error(
           err instanceof ApiError ? err.message : "Failed to create account.",
         );
       },
@@ -99,16 +96,6 @@ export function AccountsPage() {
           Invite analyst
         </CardTitle>
 
-        {createSuccess ? (
-          <div className="mb-4">
-            <FeedbackBanner
-              type="success"
-              message={createSuccess}
-              onDismiss={() => setCreateSuccess(null)}
-            />
-          </div>
-        ) : null}
-
         <form
           onSubmit={createForm.handleSubmit(onCreate)}
           className="flex flex-col gap-4"
@@ -146,15 +133,6 @@ export function AccountsPage() {
               />
             </div>
           </div>
-
-          {createError ? (
-            <div
-              role="alert"
-              className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-            >
-              {createError}
-            </div>
-          ) : null}
 
           <div>
             <Button

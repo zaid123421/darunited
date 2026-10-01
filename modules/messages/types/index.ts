@@ -15,9 +15,10 @@ export interface MessageListItem {
   created_at: string;
 }
 
-export interface MessageService {
+export interface MessageProduct {
   id: number | null;
   title: string | null;
+  isOther: boolean;
   isDeleted: boolean;
 }
 
@@ -25,10 +26,11 @@ export interface MessageDetail {
   id: number;
   fullName: string;
   email: string;
+  country: string | null;
   title: string;
   script: string;
   created_at: string;
-  service: MessageService;
+  product: MessageProduct | null;
 }
 
 export interface MessageListData {
