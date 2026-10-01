@@ -29,15 +29,23 @@ function DetailField({
   );
 }
 
-function getServiceLabel(message: MessageDetail) {
-  if (message.service.isDeleted) {
-    return message.service.title
-      ? `${message.service.title} (deleted)`
-      : "Deleted service";
+function getProductLabel(message: MessageDetail) {
+  const product = message.product;
+
+  if (!product) {
+    return "—";
   }
 
-  if (message.service.title) {
-    return message.service.title;
+  if (product.isDeleted) {
+    return product.title ? `${product.title} (deleted)` : "Deleted product";
+  }
+
+  if (product.title) {
+    return product.title;
+  }
+
+  if (product.isOther) {
+    return "Other";
   }
 
   return "—";
@@ -68,19 +76,20 @@ export function ShowMessagePage({ message }: ShowMessagePageProps) {
         <div className="grid gap-4 md:grid-cols-2">
           <DetailField label="Full Name" value={message.fullName} />
           <DetailField label="Email" value={message.email} />
-          <DetailField label="Title" value={message.title} />
+          <DetailField label="Country" value={message.country || "—"} />
           <DetailField
-            label="Service"
+            label="Product"
             value={
               <span
                 className={cn(
-                  message.service.isDeleted && "text-destructive",
+                  message.product?.isDeleted && "text-destructive",
                 )}
               >
-                {getServiceLabel(message)}
+                {getProductLabel(message)}
               </span>
             }
           />
+          <DetailField label="Title" value={message.title} />
           <DetailField
             label="Date"
             value={formatMessageDate(message.created_at)}

@@ -20,6 +20,7 @@ import {
   INVALID_IMAGE_TYPE_MESSAGE,
   isAllowedImageFile,
 } from "@/modules/media/lib/media-file-validation";
+import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
@@ -54,7 +55,6 @@ export function AddSubcategoryPage({
   const [mainPicPreview, setMainPicPreview] = useState<string | null>(null);
   const [mainPicFile, setMainPicFile] = useState<File | null>(null);
   const [mainPicError, setMainPicError] = useState<string | null>(null);
-  const [generalError, setGeneralError] = useState<string | null>(null);
 
   const {
     register,
@@ -123,7 +123,6 @@ export function AddSubcategoryPage({
 
   const handleApiError = (error: unknown) => {
     if (!(error instanceof ApiError)) {
-      setGeneralError("Something went wrong. Please try again.");
       return;
     }
 
@@ -142,13 +141,12 @@ export function AddSubcategoryPage({
     }
 
     if (parsed.general) {
-      setGeneralError(parsed.general);
+      toast.error(parsed.general);
     }
   };
 
   const onSubmit = (values: SubcategoryFormSubmitValues) => {
     setMainPicError(null);
-    setGeneralError(null);
     clearErrors("title");
     clearErrors("categoryId");
     createSubcategory.reset();
@@ -176,8 +174,6 @@ export function AddSubcategoryPage({
   };
 
   const titleError = errors.title?.message;
-  const showGeneralError =
-    generalError && !titleError && !mainPicError && !errors.categoryId;
 
   return (
     <div className="flex min-h-full w-full flex-col pb-24 sm:pb-28">
@@ -273,12 +269,6 @@ export function AddSubcategoryPage({
           onRemove={handleMainPicRemove}
           error={mainPicError ?? undefined}
         />
-
-        {showGeneralError ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {generalError}
-          </div>
-        ) : null}
       </form>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/40 backdrop-blur-md transition-[left] duration-200 lg:left-[var(--dashboard-sidebar-offset)]">
