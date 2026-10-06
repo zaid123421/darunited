@@ -1,9 +1,30 @@
+import {
+  snapshotSearchParams,
+  visitorsSearchParams,
+} from "@/modules/analytics/lib/analytics-filters";
+import {
+  normalizeSnapshot,
+  normalizeVisitors,
+} from "@/modules/analytics/lib/normalize-analytics";
+import type {
+  AnalyticsFilters,
+  AnalyticsSnapshot,
+  VisitorAnalytics,
+} from "@/modules/analytics/types";
 import { clientFetch } from "@/shared/lib/api/client";
-import type { AnalyticsPeriod, AnalyticsSnapshot } from "@/modules/analytics/types";
 
 export const analyticsClientApi = {
-  getSnapshot: (period: AnalyticsPeriod = "daily") =>
-    clientFetch<AnalyticsSnapshot>(
-      `/api/admin/dashboard/snapshot?period=${period}`,
-    ),
+  getSnapshot: async (filters: AnalyticsFilters) => {
+    const response = await clientFetch<AnalyticsSnapshot>(
+      `/api/admin/analytics/snapshot?${snapshotSearchParams(filters)}`,
+    );
+    return normalizeSnapshot(response.data);
+  },
+
+  getVisitors: async (filters: AnalyticsFilters) => {
+    const response = await clientFetch<VisitorAnalytics>(
+      `/api/admin/analytics/visitors?${visitorsSearchParams(filters)}`,
+    );
+    return normalizeVisitors(response.data);
+  },
 };
