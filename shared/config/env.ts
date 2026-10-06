@@ -37,6 +37,7 @@ export const env = {
   TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
   /** Local-only: fixed token used in request bodies (Cloudflare always-pass test secret/token). */
   TURNSTILE_TEST_TOKEN: process.env.NEXT_PUBLIC_TURNSTILE_TEST_TOKEN ?? "",
+  GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "",
   COOKIE_NAMES: {
     OTP_ACCESS: "du_otp_access_token",
     ACCESS: "du_access_token",

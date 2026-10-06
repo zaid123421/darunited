@@ -25,6 +25,8 @@ export interface SelectProps {
   id?: string;
   className?: string;
   disabled?: boolean;
+  /** Accessible name when no visible label is shown. */
+  ariaLabel?: string;
 }
 
 export function Select({
@@ -39,6 +41,7 @@ export function Select({
   id,
   className,
   disabled,
+  ariaLabel,
 }: SelectProps) {
   const isControlled = controlledValue !== undefined;
   const [internalValue, setInternalValue] = useState(defaultValue);
@@ -128,6 +131,7 @@ export function Select({
           id={selectId}
           type="button"
           role="combobox"
+          aria-label={ariaLabel ?? label}
           aria-expanded={open}
           aria-haspopup="listbox"
           aria-controls={selectId ? `${selectId}-listbox` : undefined}
@@ -165,7 +169,7 @@ export function Select({
             ref={listRef}
             id={selectId ? `${selectId}-listbox` : undefined}
             role="listbox"
-            aria-label={label}
+            aria-label={ariaLabel ?? label}
             className={cn(
               "absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-border bg-card shadow-xl",
               "animate-in fade-in-0 zoom-in-95 duration-150",
